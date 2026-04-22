@@ -1,0 +1,19 @@
+
+# Build results
+generated/
+# IDE/VS 一時ファイル
+.vs/
+*.vcxproj.user
+*.suo
+*.user
+*.userosscache
+*.VC.db
+*.VC.opendb
+ipch/
+
+# その他
+Dumps/
+imgui.ini
+*.log
+.DS_Store
+Thumbs.db
