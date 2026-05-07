@@ -2,7 +2,7 @@
 #include <string>
 #include <wrl.h>
 #include <d3d12.h>
-#include "externals/DirectXTex/DirectXTex.h"
+#include "../../externals/DirectXTex/DirectXTex.h"
 #include <unordered_map>
 
 #include "DirectXCommon.h"

@@ -11,29 +11,6 @@
 void Object3d::Initialize(Object3dCommon* object3dCommon) {
 	this->object3dCommon = object3dCommon;
 
-	//modelData = LoadObjFile("resources", "plane.obj");
-
-	//モデルの頂点リソースを作る
-	//vertexResource = object3dCommon->GetDxCommon()->CreateBufferResource(sizeof(VertexData) * modelData.vertices.size());
-	////頂点バッファビューを作る
-	////D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
-	//vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress();
-	//vertexBufferView.SizeInBytes = UINT(sizeof(VertexData) * modelData.vertices.size());
-	//vertexBufferView.StrideInBytes = sizeof(VertexData);
-	////頂点リソースにデータを書き込む
-	//vertexData = nullptr;
-	//vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
-	//std::memcpy(vertexData, modelData.vertices.data(), sizeof(VertexData) * modelData.vertices.size());
-
-	////マテリアル用のリソース作成
-	//materialResource = object3dCommon->GetDxCommon()->CreateBufferResource(256);
-	//materialData = nullptr;
-	//materialResource->Map(0, nullptr, reinterpret_cast<void**>(&materialData));
-	//float triangleColor[3] = { 1.0f, 1.0f, 1.0f };
-	//materialData->color = Vector4(triangleColor[0], triangleColor[1], triangleColor[2], 1.0f);
-	//materialData->enableLighting = true;
-	//materialData->uvTransform = MakeIdentity4x4();
-
 	//WVP用のリソース作成
 	constexpr size_t kCBSize = (sizeof(TransformationMatrix) + 255) & ~255;
     wvpResource = object3dCommon->GetDxCommon()->CreateBufferResource(kCBSize);

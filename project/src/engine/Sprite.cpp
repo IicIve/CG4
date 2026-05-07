@@ -1,4 +1,4 @@
-#include "Sprite.h"
+#include <Sprite.h>
 #include "SpriteCommon.h"
 
 //using namespace MathFunc;

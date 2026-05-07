@@ -7,7 +7,7 @@
 #include <dxgi1_6.h>
 #include <dxcapi.h>
 #include <chrono>
-#include "externals/DirectXTex/DirectXTex.h"
+#include "../../externals/DirectXTex/DirectXTex.h"
 
 #pragma comment(lib, "dxcompiler.lib")
 
