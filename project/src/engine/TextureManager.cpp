@@ -118,8 +118,8 @@ void TextureManager::LoadTexture(const std::string& filePath) {
 	GetDxCommon()->GetDevice()->CreateShaderResourceView(textureData.resource.Get(), &srvDesc, textureData.srvHandleCPU);
 
 	//テクスチャデータの転送
-	Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResource;
-	intermediateResource = GetDxCommon()->UploadTextureData(textureData.resource, mipImages);
+	//Microsoft::WRL::ComPtr<ID3D12Resource> intermediateResource;
+	textureData.intermediateResource = GetDxCommon()->UploadTextureData(textureData.resource, mipImages);
 
 	// コマンドリストを確定
 	ID3D12GraphicsCommandList* commandList = GetDxCommon()->GetCommandList();

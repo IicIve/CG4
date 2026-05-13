@@ -4,7 +4,7 @@
 
 Camera::Camera()
 	:transform({ {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f } })
-	, cameraTransform({ {1.0f,1.0f,1.0f}, {0.5f,0.0f,0.0f,}, {0.0f,15.0f, -30.0f} })
+	, cameraTransform({ {1.0f,1.0f,1.0f}, {0.3f,0.0f,0.0f,}, {0.0f,15.0f, -30.0f} })
 	, fovY(0.45f)
 	, aspectRatio(static_cast<float>(Window::kClientWidth) / static_cast<float>(Window::kClientHeight))
 	, nearClip(0.1f)

@@ -42,6 +42,7 @@
 #include "Object3dCommon.h"
 #include "ModelManager.h"
 #include "SrvManager.h"
+#include "SkyBox.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -112,6 +113,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Object3d* object3d = nullptr;
 	Object3d* object3d2 = nullptr;
 	SrvManager* srvManager = nullptr;
+	SkyBox* skyBox = nullptr;
 
 	//初期化
 	window = new Window();
@@ -126,6 +128,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	object3d2 = new Object3d();
 	Camera* camera = new Camera();
 	srvManager = new SrvManager();
+	skyBox = new SkyBox();
 
 	
 	ID3D12Resource* CreateDepthStencilTextureResource(ID3D12Device * device, int32_t width, int32_t height);
@@ -188,6 +191,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	object3d2->SetModel(terrainModel);
 	object3d2->SetCamera(camera);
 	object3d2->SetTranslate({ 0.0f, -2.0f, 0.0f });
+	skyBox->Initialize(dxCommon);
 	//camera->SetRotate({ 0.0f,0.0f,0.0f });
 	//camera->SetTranslate({ 0.0f,0.0f,0.0f });
 	//object3dCommon->SetDefaultCamera(camera);
@@ -318,12 +322,16 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/*spriteCommon->CreatePrimitiveTopology();
 		sprite->Update();
 		sprite->Draw();*/
-		object3dCommon->CreatePrimitiveTopology();
 		camera->Update();
 		object3d->Update();
 		object3d2->Update();
+		skyBox->Update(camera);
+		skyBox->CreatePrimitiveTopology();
+		skyBox->Draw();
+		object3dCommon->CreatePrimitiveTopology();
 		object3d->Draw();
 		object3d2->Draw();
+		
 
 		
 
