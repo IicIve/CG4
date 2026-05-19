@@ -19,6 +19,7 @@
 #include "externals/DirectXTex/DirectXTex.h"
 #include <iostream>
 #include <filesystem>
+#include <algorithm>
 #include "externals/DirectXTex/d3dx12.h"
 #include <numbers>
 #include <wrl.h>
@@ -182,7 +183,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	model->initialize(modelCommon, "resources", "axis.obj");
 	terrainModel->initialize(modelCommon, "resources", "terrain.obj");
 	object3dCommon->Initialize(dxCommon);
-	camera->SetRotate({ 200.0f,0.0f,0.0f });
+	camera->SetRotate({ 0.3f,0.0f,0.0f });
 	//camera->SetTranslate({ 0.0f,0.0f,0.0f });
 	object3d->Initialize(object3dCommon);
 	object3d->SetModel(model);
@@ -238,6 +239,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	input->Initialize(window);
 
 	float YRotateSpeed = 0;
+	Vector3 debugCameraRotate = camera->GetRotate();
+	Vector3 debugCameraTranslate = camera->GetTranslate();
+	const float mouseRotateSensitivity = 0.002f;
+	const float mouseWheelSensitivity = 0.01f;
 
 	//メインループ
 	MSG msg{};
@@ -252,6 +257,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//ゲームの処理
 		//入力の更新
 		input->Update();
+
+		if (input->PushMouse(1)) {
+			debugCameraRotate.x += static_cast<float>(input->GetMouseMoveY()) * mouseRotateSensitivity;
+			debugCameraRotate.y += static_cast<float>(input->GetMouseMoveX()) * mouseRotateSensitivity;
+			debugCameraRotate.x = std::clamp(debugCameraRotate.x, -1.45f, 1.45f);
+		}
+
+		if (input->GetMouseWheel() != 0) {
+			debugCameraTranslate.z += static_cast<float>(input->GetMouseWheel()) * mouseWheelSensitivity;
+		}
+
+		camera->SetRotate(debugCameraRotate);
+		camera->SetTranslate(debugCameraTranslate);
 
 		cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
 		viewMatrix = Inverse(cameraMatrix);

@@ -27,6 +27,16 @@ void Input::Initialize(Window* window){
 	result = keyboard->SetCooperativeLevel(
 		window->GetHwnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE | DISCL_NOWINKEY);
 	assert(SUCCEEDED(result));
+
+	result = directInput->CreateDevice(GUID_SysMouse, &mouse, NULL);
+	assert(SUCCEEDED(result));
+
+	result = mouse->SetDataFormat(&c_dfDIMouse2);
+	assert(SUCCEEDED(result));
+
+	result = mouse->SetCooperativeLevel(
+		window->GetHwnd(), DISCL_FOREGROUND | DISCL_NONEXCLUSIVE);
+	assert(SUCCEEDED(result));
 }
 
 void Input::Update() {
@@ -39,6 +49,9 @@ void Input::Update() {
 	result = keyboard->Acquire();
 	//全キーの入力状態を取得
 	result = keyboard->GetDeviceState(sizeof(key), key);
+
+	result = mouse->Acquire();
+	result = mouse->GetDeviceState(sizeof(mouseState), &mouseState);
 }
 
 bool Input::PushKey(BYTE keyNumber) {
@@ -55,4 +68,12 @@ bool Input::TriggerKey(BYTE keyNumber) {
 	}
 
 	return false;
+}
+
+bool Input::PushMouse(int32_t buttonNumber) {
+	if (buttonNumber < 0 || buttonNumber >= 8) {
+		return false;
+	}
+
+	return (mouseState.rgbButtons[buttonNumber] & 0x80) != 0;
 }
