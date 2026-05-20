@@ -3,8 +3,6 @@
 #include "TextureManager.h"
 #include "ModelManager.h"
 
-//#include <iostream>
-//#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -30,6 +28,9 @@ void Object3d::Initialize(Object3dCommon* object3dCommon) {
 	directionalLightData->direction = { -1.0f, -1.0f, 0.0f };  // 下向き
 	directionalLightData->intensity = 1.0f;
 
+	cameraResource = object3dCommon->GetDxCommon()->CreateBufferResource(sizeof(CameraForGPU));
+	cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
+
 	////.objの参照しているテクスチャファイル読み込み
 	//TextureManager::GetInstance()->LoadTexture(modelData.material.textureFilePath);
 	////読み込んだテクスチャの番号を取得
@@ -54,6 +55,7 @@ void Object3d::Update() {
 	if (camera) {
 		const Matrix4x4& viewProjectionMatrix = camera->GetViewProjectionMatrix();
 		worldViewProjectionMatrix = Multiply(worldMatrix, viewProjectionMatrix);
+		cameraData->worldPosition = camera->GetTranslate();
 	} else {
 		worldViewProjectionMatrix = worldMatrix;
 	}
@@ -65,12 +67,10 @@ void Object3d::Update() {
 }
 
 void Object3d::Draw() {
-	//object3dCommon->GetDxCommon()->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);
-	//object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
 	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
 	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress());
-	//object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureIndex));
-	//object3dCommon->GetDxCommon()->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(4, cameraResource->GetGPUVirtualAddress());
+	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootDescriptorTable(5, TextureManager::GetInstance()->GetSrvHandleGPU("resources/rostock_laage_airport_4k.dds"));
 	if (model) {
 		model->Draw();
 	}

@@ -57,23 +57,10 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception);
 
-
-
 struct Sphere {
 	Vector3 center;
 	float radius;
 };
-
-//struct TransformationMatrix {
-//	Matrix4x4 WVP;
-//	Matrix4x4 World;
-//};
-
-//struct DirectionalLight {
-//	Vector4 color;
-//	Vector3 direction;
-//	float intensity;
-//};
 
 struct ChunkHeader {
 	char id[4];
@@ -98,8 +85,6 @@ struct SoundData {
 
 //Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-	//CoInitializeEx(0, COINIT_MULTITHREADED);
-	//SetUnhandledExceptionFilter(ExportDump);
 
 	//ポインタ
 	Input* input = nullptr;
@@ -275,7 +260,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		viewMatrix = Inverse(cameraMatrix);
 
 		YRotateSpeed += 0.01f;
-		object3d->SetRotate({ 0.0f, YRotateSpeed, 0.0f });
+		//object3d->SetRotate({ 0.0f, YRotateSpeed, 0.0f });
+		object3d2->SetRotate({ 0.0f, YRotateSpeed, 0.0f });
 		worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
 		//worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
 		//wvpData->WVP = worldViewProjectionMatrix;

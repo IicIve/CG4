@@ -64,6 +64,10 @@ public:
 		float intensity;
 	};
 
+	struct CameraForGPU {
+		Vector3 worldPosition;
+	};
+
 	//関数
 
 	void Initialize(Object3dCommon* object3dCommon);
@@ -133,6 +137,9 @@ private:
 	Matrix4x4 projectionMatrix = MakePerspectiveFovMatrix(0.45f, static_cast<float>(Window::kClientWidth) / static_cast<float>(Window::kClientHeight), 0.1f, 100.0f);
 	Matrix4x4 viewProjectionMatrix;
 	Matrix4x4 worldViewProjectionMatrix;
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> cameraResource;
+	CameraForGPU* cameraData = nullptr;
 
 };
 
