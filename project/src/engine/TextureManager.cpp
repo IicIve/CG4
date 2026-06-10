@@ -160,7 +160,7 @@ uint32_t TextureManager::GetSrvIndex(const std::string& filePath) {
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(const std::string& filePath) {
-	assert(textureIndex < textureDatas.size());
+	assert(textureDatas.contains(filePath));
 	TextureData& textureData = textureDatas[filePath];
 	return textureData.srvHandleGPU;
 	/*assert(textureDatas.contains(filePath));
@@ -169,7 +169,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE TextureManager::GetSrvHandleGPU(const std::string& f
 }
 
 const DirectX::TexMetadata& TextureManager::GetMetaData(const std::string& filePath) {
-	assert(textureIndex < textureDatas.size());
+	assert(textureDatas.contains(filePath));
 	TextureData& textureData = textureDatas[filePath];
 	return textureData.metadata;
 	/*assert(textureDatas.contains(filePath));

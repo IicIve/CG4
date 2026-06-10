@@ -41,7 +41,7 @@ PixelShaderOutput main(VertexShaderOutput input)
     
     float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
     float4 textureColor = gTexture.Sample(gSampler, transformedUV.xy);
-    
+    output.color = gMaterial.color * textureColor;
      //textureのα値が0.5以下のときにPixelを棄却
     if (textureColor.a <= 0.5f)
     {
@@ -71,17 +71,17 @@ PixelShaderOutput main(VertexShaderOutput input)
         float3 reflectedVector = reflect(CameraToPosition, normalize(input.normal));
         float3 environmentColor = gEnvironmentTexture.Sample(gSampler, reflectedVector);
         
-         //拡散反射
+        //拡散反射
         float3 diffuse = gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb * cos * gDirectionalLight.intensity;
         //鏡面反射
-        float3 specular = gDirectionalLight.color.rgb * gDirectionalLight.intensity * specularPow * float3(1.0f, 1.0f, 1.0f);
+         float3 specular = gDirectionalLight.color.rgb * gDirectionalLight.intensity * specularPow * float3(1.0f, 1.0f, 1.0f);
         //拡散反射+鏡面反射
-        output.color.rgb = diffuse + specular;
-        output.color.rgb += environmentColor; //環境光を加算
+        //output.color.rgb = diffuse + specular;
+        //output.color.rgb += environmentColor; //環境光を加算
         //α値
         output.color.a = gMaterial.color.a * textureColor.a;
         
-        //output.color = gMaterial.color * textureColor * gDirectionalLight.color * cos * gDirectionalLight.intensity;
+        output.color = gMaterial.color * textureColor * gDirectionalLight.color * cos * gDirectionalLight.intensity;
     } else {
         output.color = gMaterial.color * textureColor;
     }

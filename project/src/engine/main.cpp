@@ -44,6 +44,7 @@
 #include "ModelManager.h"
 #include "SrvManager.h"
 #include "SkyBox.h"
+#include "ParticleManager.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -100,6 +101,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Object3d* object3d2 = nullptr;
 	SrvManager* srvManager = nullptr;
 	SkyBox* skyBox = nullptr;
+	ParticleManager* particleManager = nullptr;
 
 	//初期化
 	window = new Window();
@@ -115,6 +117,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Camera* camera = new Camera();
 	srvManager = new SrvManager();
 	skyBox = new SkyBox();
+	particleManager = new ParticleManager();
 
 	
 	ID3D12Resource* CreateDepthStencilTextureResource(ID3D12Device * device, int32_t width, int32_t height);
@@ -178,6 +181,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	object3d2->SetCamera(camera);
 	object3d2->SetTranslate({ 0.0f, -2.0f, 0.0f });
 	skyBox->Initialize(dxCommon);
+	particleManager->Initialize(dxCommon, srvManager, camera, "resources/circle.png");
 	//camera->SetRotate({ 0.0f,0.0f,0.0f });
 	//camera->SetTranslate({ 0.0f,0.0f,0.0f });
 	//object3dCommon->SetDefaultCamera(camera);
@@ -279,6 +283,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			OutputDebugStringA("Hit 0\n");
 		}
 
+		if (input->TriggerKey(DIK_SPACE)) {
+			particleManager->Emit({ 0.0f, 0.0f, 0.0f });
+			std::string message = "Particle count: " + std::to_string(particleManager->GetParticleCount()) + "\n";
+			OutputDebugStringA(message.c_str());
+		}
+
+		particleManager->Update(1.0f / 60.0f);
+
 		/*ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
@@ -327,14 +339,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		sprite->Update();
 		sprite->Draw();*/
 		camera->Update();
-		object3d->Update();
+		//object3d->Update();
 		object3d2->Update();
 		skyBox->Update(camera);
 		skyBox->CreatePrimitiveTopology();
 		skyBox->Draw();
 		object3dCommon->CreatePrimitiveTopology();
-		object3d->Draw();
+		//object3d->Draw();
 		object3d2->Draw();
+		particleManager->Draw();
 		
 
 		
@@ -364,6 +377,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	TextureManager::GetInstance()->Finalize();
 	ModelManager::GetInstance()->Finalize();
 	delete input;
+	delete particleManager;
 	delete srvManager;
 	delete window;
 	delete dxCommon;
