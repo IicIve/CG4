@@ -18,7 +18,12 @@ class SrvManager;
 
 class ParticleManager {
 public:
-	void Initialize(DirectXCommon* dxCommon, SrvManager* srvManager, Camera* camera, const std::string& textureFilePath);
+	enum class PrimitiveType {
+		Plane,
+		Ring,
+	};
+
+	void Initialize(DirectXCommon* dxCommon, SrvManager* srvManager, Camera* camera, const std::string& textureFilePath, PrimitiveType primitiveType = PrimitiveType::Plane);
 	void Update(float deltaTime);
 	void Draw();
 	void Emit(const Vector3& position);
@@ -30,6 +35,16 @@ public:
 	void SetRotateVelocityRange(float minRotateVelocity, float maxRotateVelocity);
 	void SetLength(float length);
 	void SetLengthRange(float minLength, float maxLength);
+	void SetScale(float scale);
+	void SetScaleRange(float minScale, float maxScale);
+	void SetScaleVelocity(float scaleVelocity);
+	void SetScaleVelocityRange(float minScaleVelocity, float maxScaleVelocity);
+	void SetColor(const Vector4& color);
+	void SetLifeTime(float lifeTime);
+	void SetLifeTimeRange(float minLifeTime, float maxLifeTime);
+	void SetSpeed(float speed);
+	void SetSpeedRange(float minSpeed, float maxSpeed);
+	void SetEmitCount(uint32_t emitCount);
 
 	std::size_t GetParticleCount() const { return particles_.size(); }
 
@@ -53,6 +68,8 @@ private:
 	};
 
 	void CreateVertexResource();
+	void CreatePlaneVertexResource();
+	void CreateRingVertexResource();
 	void CreateParticleResource();
 	void CreateRootSignature();
 	void CreateGraphicsPipelineState();
@@ -63,6 +80,9 @@ private:
 	SrvManager* srvManager_ = nullptr;
 	Camera* camera_ = nullptr;
 	std::string textureFilePath_;
+	PrimitiveType primitiveType_ = PrimitiveType::Plane;
+	uint32_t vertexCount_ = 0;
+	uint32_t indexCount_ = 0;
 
 	std::random_device seedGenerator_;
 	std::mt19937 randomEngine_{ seedGenerator_() };
@@ -72,12 +92,24 @@ private:
 	float maxRotateVelocity_ = 0.0f;
 	float minLength_ = 2.0f;
 	float maxLength_ = 8.0f;
+	float minScale_ = 6.0f;
+	float maxScale_ = 6.0f;
+	float minScaleVelocity_ = 0.0f;
+	float maxScaleVelocity_ = 0.0f;
+	Vector4 color_ = { 1.0f, 1.0f, 1.0f, 1.0f };
+	float minLifeTime_ = 1.0f;
+	float maxLifeTime_ = 1.0f;
+	float minSpeed_ = 2.0f;
+	float maxSpeed_ = 4.0f;
+	uint32_t emitCount_ = 3;
 
 	std::list<Particle> particles_;
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> vertexResource_;
+	Microsoft::WRL::ComPtr<ID3D12Resource> indexResource_;
 	VertexData* vertexData_ = nullptr;
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView_{};
+	D3D12_INDEX_BUFFER_VIEW indexBufferView_{};
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> viewProjectionResource_;
 	ViewProjection* viewProjectionData_ = nullptr;

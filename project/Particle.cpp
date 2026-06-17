@@ -29,6 +29,9 @@ void Particle::Update(float deltaTime) {
 	//transform.translate.y += velocity_.y * deltaTime;
 	//transform.translate.z += velocity_.z * deltaTime;
 	transform.rotate.z += rotateVelocity_ * deltaTime;
+	transform.scale.x += scaleVelocity_ * deltaTime;
+	transform.scale.y += scaleVelocity_ * deltaTime;
+	transform.scale.z += scaleVelocity_ * deltaTime;
 
 	float t = currentTime_ / lifeTime_;
 

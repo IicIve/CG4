@@ -27,6 +27,7 @@ public:
 	Vector3 velocity_;
 	Vector4 color_;
 	float rotateVelocity_ = 0.0f;
+	float scaleVelocity_ = 0.0f;
 
 	float lifeTime_ = 1.0f;
 	float currentTime_ = 0.0f;

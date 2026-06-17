@@ -104,7 +104,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	SrvManager* srvManager = nullptr;
 	SkyBox* skyBox = nullptr;
 	ParticleManager* particleManager = nullptr;
-	//ParticleManager* particleManager2 = nullptr;
+	ParticleManager* particleManager2 = nullptr;
 	Ring* ring = nullptr;
 	Cylinder* cylinder = nullptr;
 
@@ -123,7 +123,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	srvManager = new SrvManager();
 	skyBox = new SkyBox();
 	particleManager = new ParticleManager();
-	//particleManager2 = new ParticleManager();
+	particleManager2 = new ParticleManager();
 	ring = new Ring();
 	cylinder = new Cylinder();
 
@@ -192,7 +192,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ring->Initialize(dxCommon);
 	cylinder->Initialize(dxCommon);
 	particleManager->Initialize(dxCommon, srvManager, camera, "resources/circle.png");
-	//particleManager->Initialize(dxCommon, srvManager, camera, "resources/gradation.png");
+	particleManager2->Initialize(dxCommon, srvManager, camera, "resources/gradationLine.png", ParticleManager::PrimitiveType::Ring);
+	particleManager2->SetEmitCount(1);
+	particleManager2->SetScale(0.5f);
+	particleManager2->SetLength(0.5f);
+	particleManager2->SetScaleVelocity(16.0f);
 	//camera->SetRotate({ 0.0f,0.0f,0.0f });
 	//camera->SetTranslate({ 0.0f,0.0f,0.0f });
 	//object3dCommon->SetDefaultCamera(camera);
@@ -296,13 +300,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		if (input->TriggerKey(DIK_SPACE)) {
 			particleManager->Emit({ 0.0f, 0.0f, 0.0f });
-			//particleManager2->Emit({ 0.0f, 0.0f, 0.0f });
+			particleManager2->Emit({ 0.0f, 0.0f, 0.0f });
 			//std::string message = "Particle count: " + std::to_string(particleManager->GetParticleCount()) + "\n";
 			//OutputDebugStringA(message.c_str());
 		}
 
 		particleManager->Update(1.0f / 60.0f);
-		//particleManager2->Update(1.0f / 60.0f);
+		particleManager2->Update(1.0f / 60.0f);
 
 		/*ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -372,7 +376,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//object3d->Draw();
 		object3d2->Draw();
 		particleManager->Draw();
-		//particleManager2->Draw();
+		particleManager2->Draw();
 		
 
 		dxCommon->PostDraw();
@@ -401,6 +405,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ModelManager::GetInstance()->Finalize();
 	delete input;
 	delete particleManager;
+	delete particleManager2;
 	delete srvManager;
 	delete window;
 	delete dxCommon;

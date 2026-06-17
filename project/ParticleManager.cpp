@@ -8,11 +8,12 @@
 #include "SrvManager.h"
 #include "TextureManager.h"
 
-void ParticleManager::Initialize(DirectXCommon* dxCommon, SrvManager* srvManager, Camera* camera, const std::string& textureFilePath) {
+void ParticleManager::Initialize(DirectXCommon* dxCommon, SrvManager* srvManager, Camera* camera, const std::string& textureFilePath, PrimitiveType primitiveType) {
 	dxCommon_ = dxCommon;
 	srvManager_ = srvManager;
 	camera_ = camera;
 	textureFilePath_ = textureFilePath;
+	primitiveType_ = primitiveType;
 
 	TextureManager::GetInstance()->LoadTexture(textureFilePath_);
 
@@ -66,16 +67,21 @@ void ParticleManager::Draw() {
 	commandList->SetPipelineState(graphicsPipelineState_.Get());
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	commandList->IASetVertexBuffers(0, 1, &vertexBufferView_);
+	if (primitiveType_ == PrimitiveType::Ring) {
+		commandList->IASetIndexBuffer(&indexBufferView_);
+	}
 	commandList->SetGraphicsRootConstantBufferView(0, viewProjectionResource_->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootDescriptorTable(1, srvManager_->GetGPUDescriptorHandle(particleSrvIndex_));
 	commandList->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(textureFilePath_));
-	commandList->DrawInstanced(6, particleDrawCount_, 0, 0);
+	if (primitiveType_ == PrimitiveType::Ring) {
+		commandList->DrawIndexedInstanced(indexCount_, particleDrawCount_, 0, 0, 0);
+	} else {
+		commandList->DrawInstanced(vertexCount_, particleDrawCount_, 0, 0);
+	}
 }
 
 void ParticleManager::Emit(const Vector3& position) {
-	const uint32_t kEmitCount = 3;
-
-	for (uint32_t index = 0; index < kEmitCount; ++index) {
+	for (uint32_t index = 0; index < emitCount_; ++index) {
 		if (particles_.size() >= kMaxParticleCount) {
 			break;
 		}
@@ -118,13 +124,64 @@ void ParticleManager::SetLengthRange(float minLength, float maxLength) {
 	maxLength_ = maxLength;
 }
 
+void ParticleManager::SetScale(float scale) {
+	minScale_ = scale;
+	maxScale_ = scale;
+}
+
+void ParticleManager::SetScaleRange(float minScale, float maxScale) {
+	minScale_ = minScale;
+	maxScale_ = maxScale;
+}
+
+void ParticleManager::SetScaleVelocity(float scaleVelocity) {
+	minScaleVelocity_ = scaleVelocity;
+	maxScaleVelocity_ = scaleVelocity;
+}
+
+void ParticleManager::SetScaleVelocityRange(float minScaleVelocity, float maxScaleVelocity) {
+	minScaleVelocity_ = minScaleVelocity;
+	maxScaleVelocity_ = maxScaleVelocity;
+}
+
+void ParticleManager::SetColor(const Vector4& color) {
+	color_ = color;
+}
+
+void ParticleManager::SetLifeTime(float lifeTime) {
+	minLifeTime_ = lifeTime;
+	maxLifeTime_ = lifeTime;
+}
+
+void ParticleManager::SetLifeTimeRange(float minLifeTime, float maxLifeTime) {
+	minLifeTime_ = minLifeTime;
+	maxLifeTime_ = maxLifeTime;
+}
+
+void ParticleManager::SetSpeed(float speed) {
+	minSpeed_ = speed;
+	maxSpeed_ = speed;
+}
+
+void ParticleManager::SetSpeedRange(float minSpeed, float maxSpeed) {
+	minSpeed_ = minSpeed;
+	maxSpeed_ = maxSpeed;
+}
+
+void ParticleManager::SetEmitCount(uint32_t emitCount) {
+	emitCount_ = emitCount;
+}
+
 Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine) {
 	std::uniform_real_distribution<float> positionDistribution{ -0.2f, 0.2f };
 	std::uniform_real_distribution<float> directionDistribution{ -1.0f, 1.0f };
-	std::uniform_real_distribution<float> speedDistribution{ 2.0f, 4.0f };
+	std::uniform_real_distribution<float> speedDistribution{ minSpeed_, maxSpeed_ };
 	std::uniform_real_distribution<float> rotateDistribution{ minRotate_, maxRotate_ };
 	std::uniform_real_distribution<float> lengthDistribution{ minLength_, maxLength_ };
+	std::uniform_real_distribution<float> scaleDistribution{ minScale_, maxScale_ };
+	std::uniform_real_distribution<float> scaleVelocityDistribution{ minScaleVelocity_, maxScaleVelocity_ };
 	std::uniform_real_distribution<float> rotateVelocityDistribution{ minRotateVelocity_, maxRotateVelocity_ };
+	std::uniform_real_distribution<float> lifeTimeDistribution{ minLifeTime_, maxLifeTime_ };
 
 	Vector3 direction{};
 	float length = 0.0f;
@@ -149,18 +206,31 @@ Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine) {
 	particle.Initialize(
 		{positionDistribution(randomEngine),positionDistribution(randomEngine),positionDistribution(randomEngine)},
 		velocity,
-		{ 1.0f, 1.0f, 1.0f, 1.0f },
-		2.0f
+		color_,
+		lifeTimeDistribution(randomEngine)
 	);
 	particle.transform.rotate.z = rotateDistribution(randomEngine);
 	particle.rotateVelocity_ = rotateVelocityDistribution(randomEngine);
 
-	particle.transform.scale.y = lengthDistribution(randomEngine);
+	const float scale = scaleDistribution(randomEngine);
+	particle.transform.scale = { scale, lengthDistribution(randomEngine), scale };
+	particle.scaleVelocity_ = scaleVelocityDistribution(randomEngine);
 
 	return particle;
 }
 
 void ParticleManager::CreateVertexResource() {
+	if (primitiveType_ == PrimitiveType::Ring) {
+		CreateRingVertexResource();
+	} else {
+		CreatePlaneVertexResource();
+	}
+}
+
+void ParticleManager::CreatePlaneVertexResource() {
+	vertexCount_ = 6;
+	indexCount_ = 0;
+
 	vertexResource_ = dxCommon_->CreateBufferResource(sizeof(VertexData) * 6);
 	vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
 
@@ -177,6 +247,54 @@ void ParticleManager::CreateVertexResource() {
 	vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();
 	vertexBufferView_.SizeInBytes = sizeof(VertexData) * 6;
 	vertexBufferView_.StrideInBytes = sizeof(VertexData);
+}
+
+void ParticleManager::CreateRingVertexResource() {
+	const uint32_t kRingDivide = 32;
+	const float kOuterRadius = 1.0f;
+	const float kInnerRadius = 0.65f;
+	const float kRadianPerDivide = 2.0f * 3.14159265f / static_cast<float>(kRingDivide);
+
+	vertexCount_ = kRingDivide * 4;
+	indexCount_ = kRingDivide * 6;
+
+	vertexResource_ = dxCommon_->CreateBufferResource(sizeof(VertexData) * vertexCount_);
+	vertexResource_->Map(0, nullptr, reinterpret_cast<void**>(&vertexData_));
+
+	indexResource_ = dxCommon_->CreateBufferResource(sizeof(uint32_t) * indexCount_);
+	uint32_t* indexData = nullptr;
+	indexResource_->Map(0, nullptr, reinterpret_cast<void**>(&indexData));
+
+	for (uint32_t index = 0; index < kRingDivide; ++index) {
+		const float sin = std::sin(index * kRadianPerDivide);
+		const float cos = std::cos(index * kRadianPerDivide);
+		const float sinNext = std::sin((index + 1) * kRadianPerDivide);
+		const float cosNext = std::cos((index + 1) * kRadianPerDivide);
+		const float u = static_cast<float>(index) / static_cast<float>(kRingDivide);
+		const float uNext = static_cast<float>(index + 1) / static_cast<float>(kRingDivide);
+
+		const uint32_t vertexOffset = index * 4;
+		vertexData_[vertexOffset + 0] = { { -sin * kOuterRadius, cos * kOuterRadius, 0.0f, 1.0f }, { u, 0.0f } };
+		vertexData_[vertexOffset + 1] = { { -sinNext * kOuterRadius, cosNext * kOuterRadius, 0.0f, 1.0f }, { uNext, 0.0f } };
+		vertexData_[vertexOffset + 2] = { { -sin * kInnerRadius, cos * kInnerRadius, 0.0f, 1.0f }, { u, 1.0f } };
+		vertexData_[vertexOffset + 3] = { { -sinNext * kInnerRadius, cosNext * kInnerRadius, 0.0f, 1.0f }, { uNext, 1.0f } };
+
+		const uint32_t indexOffset = index * 6;
+		indexData[indexOffset + 0] = vertexOffset + 0;
+		indexData[indexOffset + 1] = vertexOffset + 1;
+		indexData[indexOffset + 2] = vertexOffset + 2;
+		indexData[indexOffset + 3] = vertexOffset + 2;
+		indexData[indexOffset + 4] = vertexOffset + 1;
+		indexData[indexOffset + 5] = vertexOffset + 3;
+	}
+
+	vertexBufferView_.BufferLocation = vertexResource_->GetGPUVirtualAddress();
+	vertexBufferView_.SizeInBytes = sizeof(VertexData) * vertexCount_;
+	vertexBufferView_.StrideInBytes = sizeof(VertexData);
+
+	indexBufferView_.BufferLocation = indexResource_->GetGPUVirtualAddress();
+	indexBufferView_.SizeInBytes = sizeof(uint32_t) * indexCount_;
+	indexBufferView_.Format = DXGI_FORMAT_R32_UINT;
 }
 
 void ParticleManager::CreateParticleResource() {
