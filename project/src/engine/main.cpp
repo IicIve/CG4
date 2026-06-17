@@ -46,6 +46,7 @@
 #include "SkyBox.h"
 #include "ParticleManager.h"
 #include "Ring.h"
+#include "Cylinder.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -105,6 +106,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ParticleManager* particleManager = nullptr;
 	//ParticleManager* particleManager2 = nullptr;
 	Ring* ring = nullptr;
+	Cylinder* cylinder = nullptr;
 
 	//初期化
 	window = new Window();
@@ -123,6 +125,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	particleManager = new ParticleManager();
 	//particleManager2 = new ParticleManager();
 	ring = new Ring();
+	cylinder = new Cylinder();
 
 	
 	ID3D12Resource* CreateDepthStencilTextureResource(ID3D12Device * device, int32_t width, int32_t height);
@@ -187,6 +190,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	object3d2->SetTranslate({ 0.0f, -2.0f, 0.0f });
 	skyBox->Initialize(dxCommon);
 	ring->Initialize(dxCommon);
+	cylinder->Initialize(dxCommon);
 	particleManager->Initialize(dxCommon, srvManager, camera, "resources/circle.png");
 	//particleManager->Initialize(dxCommon, srvManager, camera, "resources/gradation.png");
 	//camera->SetRotate({ 0.0f,0.0f,0.0f });
@@ -352,13 +356,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		//object3d->Update();
 		object3d2->Update();
 
-		skyBox->Update(camera);
+		/*skyBox->Update(camera);
 		skyBox->CreatePrimitiveTopology();
-		skyBox->Draw();
+		skyBox->Draw();*/
 
 		/*ring->Update(camera);
 		ring->CreatePrimitiveTopology();
 		ring->Draw();*/
+
+		cylinder->Update(camera);
+		cylinder->CreatePrimitiveTopology();
+		cylinder->Draw();
 
 		object3dCommon->CreatePrimitiveTopology();
 		//object3d->Draw();

@@ -146,6 +146,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Cylinder.cpp" />
     <ClCompile Include="Particle.cpp" />
     <ClCompile Include="ParticleManager.cpp" />
     <ClCompile Include="Ring.cpp" />
@@ -205,6 +206,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <None Include="resources\shaders\SkyBox.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Cylinder.h" />
     <ClInclude Include="include\engine\Camera.h" />
     <ClInclude Include="include\engine\D3DResourceLeakChecker.h" />
     <ClInclude Include="include\engine\DirectXCommon.h" />
