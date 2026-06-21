@@ -105,6 +105,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	SkyBox* skyBox = nullptr;
 	ParticleManager* particleManager = nullptr;
 	ParticleManager* particleManager2 = nullptr;
+	ParticleManager* smokeManager = nullptr;
 	Ring* ring = nullptr;
 	Cylinder* cylinder = nullptr;
 
@@ -124,6 +125,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	skyBox = new SkyBox();
 	particleManager = new ParticleManager();
 	particleManager2 = new ParticleManager();
+	smokeManager = new ParticleManager();
 	ring = new Ring();
 	cylinder = new Cylinder();
 
@@ -179,6 +181,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	model->initialize(modelCommon, "resources", "axis.obj");
 	terrainModel->initialize(modelCommon, "resources", "terrain.obj");
 	object3dCommon->Initialize(dxCommon);
+
 	camera->SetRotate({ 0.3f,0.0f,0.0f });
 	//camera->SetTranslate({ 0.0f,0.0f,0.0f });
 	object3d->Initialize(object3dCommon);
@@ -188,15 +191,28 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	object3d2->SetModel(terrainModel);
 	object3d2->SetCamera(camera);
 	object3d2->SetTranslate({ 0.0f, -2.0f, 0.0f });
+
 	skyBox->Initialize(dxCommon);
 	ring->Initialize(dxCommon);
 	cylinder->Initialize(dxCommon);
+
 	particleManager->Initialize(dxCommon, srvManager, camera, "resources/circle.png");
+	particleManager->SetSpeed(0.0f);
 	particleManager2->Initialize(dxCommon, srvManager, camera, "resources/gradationLine.png", ParticleManager::PrimitiveType::Ring);
 	particleManager2->SetEmitCount(1);
 	particleManager2->SetScale(0.5f);
 	particleManager2->SetLength(0.5f);
+	particleManager2->SetSpeed(0.0f);
 	particleManager2->SetScaleVelocity(16.0f);
+	smokeManager->Initialize(dxCommon, srvManager, camera, "resources/circle.png", ParticleManager::PrimitiveType::Plane, ParticleManager::BlendMode::Alpha);
+	smokeManager->SetPlaneSize(0.5f, 0.5f);
+	smokeManager->SetEmitCount(10);
+	smokeManager->SetColor({ 0.3f, 0.3f, 0.3f, 0.7f });
+	smokeManager->SetLifeTimeRange(2.0f, 3.5f);
+	smokeManager->SetSpeedRange(0.2f, 0.8f);
+	smokeManager->SetUniformScaleRange(0.8f, 1.4f);
+	smokeManager->SetScaleVelocityRange(1.0f, 16.0f);
+
 	//camera->SetRotate({ 0.0f,0.0f,0.0f });
 	//camera->SetTranslate({ 0.0f,0.0f,0.0f });
 	//object3dCommon->SetDefaultCamera(camera);
@@ -301,12 +317,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		if (input->TriggerKey(DIK_SPACE)) {
 			particleManager->Emit({ 0.0f, 0.0f, 0.0f });
 			particleManager2->Emit({ 0.0f, 0.0f, 0.0f });
+			smokeManager->Emit({ 0.0f, -1.7f, 0.0f });
 			//std::string message = "Particle count: " + std::to_string(particleManager->GetParticleCount()) + "\n";
 			//OutputDebugStringA(message.c_str());
 		}
 
 		particleManager->Update(1.0f / 60.0f);
 		particleManager2->Update(1.0f / 60.0f);
+		smokeManager->Update(1.0f / 60.0f);
 
 		/*ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -375,8 +393,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		object3dCommon->CreatePrimitiveTopology();
 		//object3d->Draw();
 		object3d2->Draw();
+
 		particleManager->Draw();
 		particleManager2->Draw();
+		smokeManager->Draw();
 		
 
 		dxCommon->PostDraw();
@@ -406,6 +426,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	delete input;
 	delete particleManager;
 	delete particleManager2;
+	delete smokeManager;
 	delete srvManager;
 	delete window;
 	delete dxCommon;

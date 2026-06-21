@@ -8,12 +8,13 @@
 #include "SrvManager.h"
 #include "TextureManager.h"
 
-void ParticleManager::Initialize(DirectXCommon* dxCommon, SrvManager* srvManager, Camera* camera, const std::string& textureFilePath, PrimitiveType primitiveType) {
+void ParticleManager::Initialize(DirectXCommon* dxCommon, SrvManager* srvManager, Camera* camera, const std::string& textureFilePath, PrimitiveType primitiveType, BlendMode blendMode) {
 	dxCommon_ = dxCommon;
 	srvManager_ = srvManager;
 	camera_ = camera;
 	textureFilePath_ = textureFilePath;
 	primitiveType_ = primitiveType;
+	blendMode_ = blendMode;
 
 	TextureManager::GetInstance()->LoadTexture(textureFilePath_);
 
@@ -127,11 +128,32 @@ void ParticleManager::SetLengthRange(float minLength, float maxLength) {
 void ParticleManager::SetScale(float scale) {
 	minScale_ = scale;
 	maxScale_ = scale;
+	useUniformScale_ = false;
 }
 
 void ParticleManager::SetScaleRange(float minScale, float maxScale) {
 	minScale_ = minScale;
 	maxScale_ = maxScale;
+	useUniformScale_ = false;
+}
+
+void ParticleManager::SetUniformScaleRange(float minScale, float maxScale) {
+	minScale_ = minScale;
+	maxScale_ = maxScale;
+	useUniformScale_ = true;
+}
+
+void ParticleManager::SetPlaneSize(float halfWidth, float halfHeight) {
+	if (primitiveType_ != PrimitiveType::Plane || vertexData_ == nullptr) {
+		return;
+	}
+
+	vertexData_[0].position = { -halfWidth, -halfHeight, 0.0f, 1.0f };
+	vertexData_[1].position = { -halfWidth,  halfHeight, 0.0f, 1.0f };
+	vertexData_[2].position = {  halfWidth, -halfHeight, 0.0f, 1.0f };
+	vertexData_[3].position = { -halfWidth,  halfHeight, 0.0f, 1.0f };
+	vertexData_[4].position = {  halfWidth,  halfHeight, 0.0f, 1.0f };
+	vertexData_[5].position = {  halfWidth, -halfHeight, 0.0f, 1.0f };
 }
 
 void ParticleManager::SetScaleVelocity(float scaleVelocity) {
@@ -213,7 +235,8 @@ Particle ParticleManager::MakeNewParticle(std::mt19937& randomEngine) {
 	particle.rotateVelocity_ = rotateVelocityDistribution(randomEngine);
 
 	const float scale = scaleDistribution(randomEngine);
-	particle.transform.scale = { scale, lengthDistribution(randomEngine), scale };
+	const float particleLength = useUniformScale_ ? scale : lengthDistribution(randomEngine);
+	particle.transform.scale = { scale, particleLength, scale };
 	particle.scaleVelocity_ = scaleVelocityDistribution(randomEngine);
 
 	return particle;
@@ -391,7 +414,9 @@ void ParticleManager::CreateGraphicsPipelineState() {
 	D3D12_BLEND_DESC blendDesc{};
 	blendDesc.RenderTarget[0].BlendEnable = true;
 	blendDesc.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
-	blendDesc.RenderTarget[0].DestBlend = D3D12_BLEND_ONE;
+	blendDesc.RenderTarget[0].DestBlend = blendMode_ == BlendMode::Alpha
+		? D3D12_BLEND_INV_SRC_ALPHA
+		: D3D12_BLEND_ONE;
 	blendDesc.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
 	blendDesc.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
 	blendDesc.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;

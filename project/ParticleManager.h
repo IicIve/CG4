@@ -22,8 +22,12 @@ public:
 		Plane,
 		Ring,
 	};
+	enum class BlendMode {
+		Add,
+		Alpha,
+	};
 
-	void Initialize(DirectXCommon* dxCommon, SrvManager* srvManager, Camera* camera, const std::string& textureFilePath, PrimitiveType primitiveType = PrimitiveType::Plane);
+	void Initialize(DirectXCommon* dxCommon, SrvManager* srvManager, Camera* camera, const std::string& textureFilePath, PrimitiveType primitiveType = PrimitiveType::Plane, BlendMode blendMode = BlendMode::Add);
 	void Update(float deltaTime);
 	void Draw();
 	void Emit(const Vector3& position);
@@ -37,6 +41,8 @@ public:
 	void SetLengthRange(float minLength, float maxLength);
 	void SetScale(float scale);
 	void SetScaleRange(float minScale, float maxScale);
+	void SetUniformScaleRange(float minScale, float maxScale);
+	void SetPlaneSize(float halfWidth, float halfHeight);
 	void SetScaleVelocity(float scaleVelocity);
 	void SetScaleVelocityRange(float minScaleVelocity, float maxScaleVelocity);
 	void SetColor(const Vector4& color);
@@ -81,6 +87,7 @@ private:
 	Camera* camera_ = nullptr;
 	std::string textureFilePath_;
 	PrimitiveType primitiveType_ = PrimitiveType::Plane;
+	BlendMode blendMode_ = BlendMode::Add;
 	uint32_t vertexCount_ = 0;
 	uint32_t indexCount_ = 0;
 
@@ -94,6 +101,7 @@ private:
 	float maxLength_ = 8.0f;
 	float minScale_ = 6.0f;
 	float maxScale_ = 6.0f;
+	bool useUniformScale_ = false;
 	float minScaleVelocity_ = 0.0f;
 	float maxScaleVelocity_ = 0.0f;
 	Vector4 color_ = { 1.0f, 1.0f, 1.0f, 1.0f };

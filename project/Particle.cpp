@@ -7,6 +7,7 @@ void Particle::Initialize(const Vector3& position, const Vector3& velocity, cons
 	transform.translate = position;
 	velocity_ = velocity;
 	color_ = color;
+	initialAlpha_ = color.w;
 	lifeTime_ = lifeTime;
 	currentTime_ = 0.0f;
 	isAlive_ = true;
@@ -25,9 +26,9 @@ void Particle::Update(float deltaTime) {
 		return;
 	}
 
-	//transform.translate.x += velocity_.x * deltaTime;
-	//transform.translate.y += velocity_.y * deltaTime;
-	//transform.translate.z += velocity_.z * deltaTime;
+	transform.translate.x += velocity_.x * deltaTime;
+	transform.translate.y += velocity_.y * deltaTime;
+	transform.translate.z += velocity_.z * deltaTime;
 	transform.rotate.z += rotateVelocity_ * deltaTime;
 	transform.scale.x += scaleVelocity_ * deltaTime;
 	transform.scale.y += scaleVelocity_ * deltaTime;
@@ -36,7 +37,7 @@ void Particle::Update(float deltaTime) {
 	float t = currentTime_ / lifeTime_;
 
 	// 時間でだんだん透明・小さくする
-	color_.w = 1.0f - t;
+	color_.w = initialAlpha_ * (1.0f - t);
 	//scale_ = 3.0f * (1.0f - t);
 	//transform.scale = { scale_, scale_, scale_ };
 

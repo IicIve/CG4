@@ -39,6 +39,7 @@ private:
 	//Vector4 color_{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 	float scale_ = 1.0f;
+	float initialAlpha_ = 1.0f;
 
 	bool isAlive_ = false;
 
