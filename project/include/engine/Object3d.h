@@ -64,6 +64,15 @@ public:
 		float intensity;
 	};
 
+	struct PointLight {
+		Vector4 color;
+		Vector3 position;
+		float intensity;
+		float radius;
+		float decay;
+		float padding[2];
+	};
+
 	struct CameraForGPU {
 		Vector3 worldPosition;
 	};
@@ -81,6 +90,7 @@ public:
 	void SetRotate(const Vector3& rotate) { transform.rotate = rotate; }
 	void SetTranslate(const Vector3& translate) { transform.translate = translate; }
 	void SetCamera(Camera* camera) { this->camera = camera; }
+	void SetPointLight(const Vector3& position, const Vector4& color, float intensity, float radius, float decay);
 
 	//getter
 	const Vector3& GetScale() const { return transform.scale; }
@@ -127,6 +137,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12Resource> directionalLightResource;
 	//バッファリソース内のデータを指すポインタ
 	DirectionalLight* directionalLightData = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> pointLightResource;
+	PointLight* pointLightData = nullptr;
 
 	Transform transform;
 	Transform cameraTransform;

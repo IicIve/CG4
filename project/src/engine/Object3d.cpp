@@ -28,6 +28,14 @@ void Object3d::Initialize(Object3dCommon* object3dCommon) {
 	directionalLightData->direction = { -1.0f, -1.0f, 0.0f };  // 下向き
 	directionalLightData->intensity = 1.0f;
 
+	pointLightResource = object3dCommon->GetDxCommon()->CreateBufferResource(sizeof(PointLight));
+	pointLightResource->Map(0, nullptr, reinterpret_cast<void**>(&pointLightData));
+	pointLightData->color = { 1.0f, 0.75f, 0.25f, 1.0f };
+	pointLightData->position = { 0.0f, 0.0f, 0.0f };
+	pointLightData->intensity = 0.0f;
+	pointLightData->radius = 8.0f;
+	pointLightData->decay = 2.0f;
+
 	cameraResource = object3dCommon->GetDxCommon()->CreateBufferResource(sizeof(CameraForGPU));
 	cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
 
@@ -71,9 +79,18 @@ void Object3d::Draw() {
 	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress());
 	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(4, cameraResource->GetGPUVirtualAddress());
 	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootDescriptorTable(5, TextureManager::GetInstance()->GetSrvHandleGPU("resources/rostock_laage_airport_4k.dds"));
+	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(6, pointLightResource->GetGPUVirtualAddress());
 	if (model) {
 		model->Draw();
 	}
+}
+
+void Object3d::SetPointLight(const Vector3& position, const Vector4& color, float intensity, float radius, float decay) {
+	pointLightData->position = position;
+	pointLightData->color = color;
+	pointLightData->intensity = intensity;
+	pointLightData->radius = radius;
+	pointLightData->decay = decay;
 }
 
 Object3d::MaterialData Object3d::LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {

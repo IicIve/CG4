@@ -20,6 +20,16 @@ struct Camera
     float3 worldPosition;
 };
 
+struct PointLight
+{
+    float4 color;
+    float3 position;
+    float intensity;
+    float radius;
+    float decay;
+    float2 padding;
+};
+
 ConstantBuffer<Material> gMaterial : register(b0);
 
 Texture2D<float4> gTexture : register(t0);
@@ -29,6 +39,7 @@ SamplerState gSampler : register(s0);
 
 ConstantBuffer<DirectionalLight> gDirectionalLight : register(b1);
 ConstantBuffer<Camera> gCamera : register(b2);
+ConstantBuffer<PointLight> gPointLight : register(b3);
 
 struct PixelShaderOutput
 {
@@ -81,7 +92,18 @@ PixelShaderOutput main(VertexShaderOutput input)
         //α値
         output.color.a = gMaterial.color.a * textureColor.a;
         
-        output.color = gMaterial.color * textureColor * gDirectionalLight.color * cos * gDirectionalLight.intensity;
+        float3 baseColor = gMaterial.color.rgb * textureColor.rgb;
+        float3 directionalDiffuse = baseColor * gDirectionalLight.color.rgb * cos * gDirectionalLight.intensity;
+
+        float3 pointDirection = gPointLight.position - input.worldPosition;
+        float pointDistance = length(pointDirection);
+        pointDirection = pointDistance > 0.0001f ? pointDirection / pointDistance : float3(0.0f, 1.0f, 0.0f);
+        float pointNdotL = saturate(dot(normalize(input.normal), pointDirection));
+        float attenuation = pow(saturate(1.0f - pointDistance / max(gPointLight.radius, 0.0001f)), gPointLight.decay);
+        float3 pointDiffuse = baseColor * gPointLight.color.rgb * pointNdotL * gPointLight.intensity * attenuation;
+
+        output.color.rgb = directionalDiffuse + pointDiffuse;
+        output.color.a = gMaterial.color.a * textureColor.a;
     } else {
         output.color = gMaterial.color * textureColor;
     }

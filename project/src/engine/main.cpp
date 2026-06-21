@@ -106,6 +106,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ParticleManager* particleManager = nullptr;
 	ParticleManager* particleManager2 = nullptr;
 	ParticleManager* smokeManager = nullptr;
+	ParticleManager* flashManager = nullptr;
 	Ring* ring = nullptr;
 	Cylinder* cylinder = nullptr;
 
@@ -126,6 +127,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	particleManager = new ParticleManager();
 	particleManager2 = new ParticleManager();
 	smokeManager = new ParticleManager();
+	flashManager = new ParticleManager();
 	ring = new Ring();
 	cylinder = new Cylinder();
 
@@ -203,7 +205,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	particleManager2->SetScale(0.5f);
 	particleManager2->SetLength(0.5f);
 	particleManager2->SetSpeed(0.0f);
-	particleManager2->SetScaleVelocity(16.0f);
+	particleManager2->SetScaleVelocity(32.0f);
 	smokeManager->Initialize(dxCommon, srvManager, camera, "resources/circle.png", ParticleManager::PrimitiveType::Plane, ParticleManager::BlendMode::Alpha);
 	smokeManager->SetPlaneSize(0.5f, 0.5f);
 	smokeManager->SetEmitCount(10);
@@ -212,6 +214,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	smokeManager->SetSpeedRange(0.2f, 0.8f);
 	smokeManager->SetUniformScaleRange(0.8f, 1.4f);
 	smokeManager->SetScaleVelocityRange(1.0f, 16.0f);
+	flashManager->Initialize(dxCommon, srvManager, camera, "resources/circle.png");
+	flashManager->SetPlaneSize(0.5f, 0.5f);
+	flashManager->SetEmitCount(1);
+	flashManager->SetColor({ 1.0f, 0.75f, 0.25f, 1.0f });
+	flashManager->SetLifeTime(0.3f);
+	flashManager->SetSpeed(0.0f);
+	flashManager->SetUniformScaleRange(8.0f, 8.0f);
+	flashManager->SetScaleVelocity(8.0f);
 
 	//camera->SetRotate({ 0.0f,0.0f,0.0f });
 	//camera->SetTranslate({ 0.0f,0.0f,0.0f });
@@ -259,6 +269,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	input->Initialize(window);
 
 	float YRotateSpeed = 0;
+	float flashLightTime = 0.0f;
 	Vector3 debugCameraRotate = camera->GetRotate();
 	Vector3 debugCameraTranslate = camera->GetTranslate();
 	const float mouseRotateSensitivity = 0.002f;
@@ -318,6 +329,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			particleManager->Emit({ 0.0f, 0.0f, 0.0f });
 			particleManager2->Emit({ 0.0f, 0.0f, 0.0f });
 			smokeManager->Emit({ 0.0f, -1.7f, 0.0f });
+			flashManager->Emit({ 0.0f, 0.0f, 0.0f });
+			flashLightTime = 0.15f;
 			//std::string message = "Particle count: " + std::to_string(particleManager->GetParticleCount()) + "\n";
 			//OutputDebugStringA(message.c_str());
 		}
@@ -325,6 +338,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		particleManager->Update(1.0f / 60.0f);
 		particleManager2->Update(1.0f / 60.0f);
 		smokeManager->Update(1.0f / 60.0f);
+		flashManager->Update(1.0f / 60.0f);
+		const float flashLightIntensity = 8.0f * (flashLightTime / 0.15f);
+		object3d2->SetPointLight({ 0.0f, 0.0f, 0.0f }, 
+			{ 1.0f, 0.75f, 0.25f, 1.0f }, 
+			flashLightIntensity, 14.0f, 2.0f);
+		if (flashLightTime > 0.0f) {
+			flashLightTime -= 1.0f / 60.0f;
+			if (flashLightTime < 0.0f) {
+				flashLightTime = 0.0f;
+			}
+		}
 
 		/*ImGui_ImplDX12_NewFrame();
 		ImGui_ImplWin32_NewFrame();
@@ -396,6 +420,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		particleManager->Draw();
 		particleManager2->Draw();
+		flashManager->Draw();
 		smokeManager->Draw();
 		
 
@@ -427,6 +452,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	delete particleManager;
 	delete particleManager2;
 	delete smokeManager;
+	delete flashManager;
 	delete srvManager;
 	delete window;
 	delete dxCommon;
