@@ -13,6 +13,7 @@
 #include "MathFunc.h"
 
 //class ModelCommon;
+struct aiNode;
 
 using namespace Vector;
 using namespace Matrix;
@@ -33,9 +34,16 @@ public:
 		uint32_t textureIndex = 0;
 	};
 
+	struct Node {
+		Matrix4x4 localMatrix;
+		std::string name;
+		std::vector<Node> children;
+	};
+
 	struct ModelData {
 		std::vector<VertexData> vertices;
 		MaterialData material;
+		Node rootNode;
 	};
 
 	struct Material {
@@ -50,12 +58,15 @@ public:
 	void initialize(ModelCommon* modelCommon, const std::string& directorypath, const std::string& filename);
 	void Draw();
 
+	const Node& GetRootNode() const { return modelData.rootNode; }
+
 private:
 	//関数
 
 	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
-	static ModelData LoadObjFile(const std::string& directoryPath, const std::string& filename);
-
+	static ModelData LoadModelFile(const std::string& directoryPath, const std::string& filename);
+	static Node ReadNode(aiNode* node);
+	
 
 	//変数
 

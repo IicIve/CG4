@@ -80,7 +80,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         
         float3 CameraToPosition = normalize(input.worldPosition - gCamera.worldPosition);
         float3 reflectedVector = reflect(CameraToPosition, normalize(input.normal));
-        float3 environmentColor = gEnvironmentTexture.Sample(gSampler, reflectedVector);
+        float3 environmentColor = gEnvironmentTexture.Sample(gSampler, reflectedVector).rgb;
         
         //拡散反射
         float3 diffuse = gMaterial.color.rgb * textureColor.rgb * gDirectionalLight.color.rgb * cos * gDirectionalLight.intensity;

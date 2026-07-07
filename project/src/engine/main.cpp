@@ -178,9 +178,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	spriteCommon->Initialize(dxCommon);
 	sprite->Initialize(spriteCommon, "resources/uvChecker.png");
 	ModelManager::GetInstance()->Initialize(dxCommon);
-	ModelManager::GetInstance()->LoadModel("axis.obj"); //.objからモデルを読み込む
+	ModelManager::GetInstance()->LoadModel("AnimatedCube.gltf"); //.objからモデルを読み込む
 	modelCommon->Initialize(dxCommon);
-	model->initialize(modelCommon, "resources", "axis.obj");
+	model->initialize(modelCommon, "resources", "AnimatedCube.gltf");
 	terrainModel->initialize(modelCommon, "resources", "terrain.obj");
 	object3dCommon->Initialize(dxCommon);
 
@@ -399,7 +399,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		sprite->Draw();*/
 
 		camera->Update();
-		//object3d->Update();
+		object3d->Update();
 		object3d2->Update();
 
 		/*skyBox->Update(camera);
@@ -415,7 +415,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		cylinder->Draw();
 
 		object3dCommon->CreatePrimitiveTopology();
-		//object3d->Draw();
+		object3d->Draw();
 		object3d2->Draw();
 
 		particleManager->Draw();

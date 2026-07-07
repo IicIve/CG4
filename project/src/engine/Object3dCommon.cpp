@@ -14,6 +14,7 @@ void Object3dCommon::CreatePrimitiveTopology() {
 
 void Object3dCommon::CreateRootSignature() {
 	HRESULT hr;
+	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
 
 	//RootSignature作成
 	//D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
@@ -35,9 +36,11 @@ void Object3dCommon::CreateRootSignature() {
 	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParameters[0].Descriptor.ShaderRegister = 0;
+	rootParameters[0].Descriptor.RegisterSpace = 0;
 	rootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 	rootParameters[1].Descriptor.ShaderRegister = 0;
+	rootParameters[1].Descriptor.RegisterSpace = 0;
 	rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParameters[2].DescriptorTable.pDescriptorRanges = &descriptorRange[0];
@@ -45,9 +48,11 @@ void Object3dCommon::CreateRootSignature() {
 	rootParameters[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	rootParameters[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParameters[3].Descriptor.ShaderRegister = 1;
+	rootParameters[3].Descriptor.RegisterSpace = 0;
 	rootParameters[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	rootParameters[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParameters[4].Descriptor.ShaderRegister = 2;
+	rootParameters[4].Descriptor.RegisterSpace = 0;
 	rootParameters[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rootParameters[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParameters[5].DescriptorTable.pDescriptorRanges = &descriptorRange[1];
@@ -55,6 +60,7 @@ void Object3dCommon::CreateRootSignature() {
 	rootParameters[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 	rootParameters[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rootParameters[6].Descriptor.ShaderRegister = 3;
+	rootParameters[6].Descriptor.RegisterSpace = 0;
 	descriptionRootSignature.pParameters = rootParameters;
 	descriptionRootSignature.NumParameters = _countof(rootParameters);
 
@@ -93,21 +99,6 @@ void Object3dCommon::CreateGraphicsPipelineState() {
 	HRESULT hr;
 
 	CreateRootSignature();
-
-	//ID3DBlob* signatureBlob = nullptr;
-	//ID3DBlob* errorBlob = nullptr;
-	/*hr = D3D12SerializeRootSignature(&descriptionRootSignature,
-		D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob);
-	if (FAILED(hr)) {
-		Logger::Log(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
-		assert(false);
-	}*/
-
-	//ID3D12RootSignature* rootSignature = nullptr;
-	hr = GetDxCommon()->GetDevice()->CreateRootSignature(0,
-		signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(),
-		IID_PPV_ARGS(&rootSignature));
-	assert(SUCCEEDED(hr));
 
 	//InputLayout
 	D3D12_INPUT_ELEMENT_DESC inputElementDescs[3] = {};
