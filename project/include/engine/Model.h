@@ -57,14 +57,15 @@ public:
 
 	void initialize(ModelCommon* modelCommon, const std::string& directorypath, const std::string& filename);
 	void Draw();
+	static ModelData LoadModelFile(const std::string& directoryPath, const std::string& filename);
 
 	const Node& GetRootNode() const { return modelData.rootNode; }
+	void SetRootLocalMatrix(const Matrix4x4& localMatrix) { modelData.rootNode.localMatrix = localMatrix; }
 
 private:
 	//関数
 
 	static MaterialData LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename);
-	static ModelData LoadModelFile(const std::string& directoryPath, const std::string& filename);
 	static Node ReadNode(aiNode* node);
 	
 

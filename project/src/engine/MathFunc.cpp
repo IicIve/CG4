@@ -197,6 +197,44 @@ Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Ve
 	return result;
 }
 
+Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Quaternion& rotate, const Vector3& translate) {
+	const Quaternion q = Normalize(rotate);
+
+	const float xx = q.x * q.x;
+	const float yy = q.y * q.y;
+	const float zz = q.z * q.z;
+	const float xy = q.x * q.y;
+	const float xz = q.x * q.z;
+	const float yz = q.y * q.z;
+	const float wx = q.w * q.x;
+	const float wy = q.w * q.y;
+	const float wz = q.w * q.z;
+
+	Matrix4x4 result{};
+
+	result.m[0][0] = (1.0f - 2.0f * (yy + zz)) * scale.x;
+	result.m[0][1] = (2.0f * (xy + wz)) * scale.x;
+	result.m[0][2] = (2.0f * (xz - wy)) * scale.x;
+	result.m[0][3] = 0.0f;
+
+	result.m[1][0] = (2.0f * (xy - wz)) * scale.y;
+	result.m[1][1] = (1.0f - 2.0f * (xx + zz)) * scale.y;
+	result.m[1][2] = (2.0f * (yz + wx)) * scale.y;
+	result.m[1][3] = 0.0f;
+
+	result.m[2][0] = (2.0f * (xz + wy)) * scale.z;
+	result.m[2][1] = (2.0f * (yz - wx)) * scale.z;
+	result.m[2][2] = (1.0f - 2.0f * (xx + yy)) * scale.z;
+	result.m[2][3] = 0.0f;
+
+	result.m[3][0] = translate.x;
+	result.m[3][1] = translate.y;
+	result.m[3][2] = translate.z;
+	result.m[3][3] = 1.0f;
+
+	return result;
+}
+
 Matrix4x4 MakePerspectiveFovMatrix(float fovY, float aspectRatio, float nearClip, float farClip) {
 	Matrix4x4 result = {};
 

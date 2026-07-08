@@ -47,6 +47,7 @@
 #include "ParticleManager.h"
 #include "Ring.h"
 #include "Cylinder.h"
+#include "KeyframeAnimation.h"
 
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -109,6 +110,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ParticleManager* flashManager = nullptr;
 	Ring* ring = nullptr;
 	Cylinder* cylinder = nullptr;
+	KeyframeAnimation* keyframeAnimation = nullptr;
 
 	//初期化
 	window = new Window();
@@ -130,6 +132,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	flashManager = new ParticleManager();
 	ring = new Ring();
 	cylinder = new Cylinder();
+	keyframeAnimation = new KeyframeAnimation();
 
 	
 	ID3D12Resource* CreateDepthStencilTextureResource(ID3D12Device * device, int32_t width, int32_t height);
@@ -157,11 +160,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Matrix4x4 worldViewProjectionMatrixSprite = Multiply(worldMatrixSprite, Multiply(viewMatrixSprite, projectionMatrixSprite));
 
 	//球の変換行列
-	Matrix4x4 worldMatrixSphere = MakeAffineMatrix(
-		{ sphere.radius, sphere.radius, sphere.radius }, // スケール
-		{ 0.0f, 0.0f, 0.0f },                           // 回転
-		sphere.center                                   // 平行移動
-	);
+	//Matrix4x4 worldMatrixSphere = MakeAffineMatrix(
+	//	{ sphere.radius, sphere.radius, sphere.radius }, // スケール
+	//	{ 0.0f, 0.0f, 0.0f },                           // 回転
+	//	sphere.center                                   // 平行移動
+	//);
 	//Matrix4x4 worldViewProjectionMatrixSphere = Multiply(worldMatrixSphere, Multiply(viewMatrix, projectionMatrix));
 
 	//UVTransform用の行列
@@ -399,6 +402,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		sprite->Draw();*/
 
 		camera->Update();
+		keyframeAnimation->Update(1.0f / 60.0f);
+		model->SetRootLocalMatrix(keyframeAnimation->GetModelData().rootNode.localMatrix);
 		object3d->Update();
 		object3d2->Update();
 
@@ -453,6 +458,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	delete particleManager2;
 	delete smokeManager;
 	delete flashManager;
+	delete keyframeAnimation;
 	delete srvManager;
 	delete window;
 	delete dxCommon;

@@ -68,7 +68,7 @@ void Object3d::Update() {
 
 	if (camera) {
 		const Matrix4x4& viewProjectionMatrix = camera->GetViewProjectionMatrix();
-		worldViewProjectionMatrix = Multiply(worldMatrix, viewProjectionMatrix);
+		worldViewProjectionMatrix = Multiply(worldMatrixWithRoot, viewProjectionMatrix);
 		cameraData->worldPosition = camera->GetTranslate();
 	} else {
 		worldViewProjectionMatrix = worldMatrixWithRoot;

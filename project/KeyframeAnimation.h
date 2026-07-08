@@ -7,6 +7,7 @@
 #include "Vector.h"
 #include "Quaternion.h"
 #include "ModelManager.h"
+#include "MathFunc.h"
 
 using namespace Vector;
 using namespace QuaternionMath;
@@ -69,10 +70,18 @@ public:
 	};
 
 	Animation LoadAnimationFile(const std::string& directoryPath, const std::string& filename);
-
+	void Update(float deltaTime);
+	Vector3 CalculateValue(const std::vector<KeyframeVector3>& keyframes, float time);
+	Quaternion CalculateValue(const std::vector<KeyframeQuaternion>& keyframes, float time);
+	const Model::ModelData& GetModelData() const { return model; }
 
 private:
-	//ModelData model = LoadModel("./resources/AnimatedCube", "AnimatedCube.gltf");
+	Model::ModelData model = Model::LoadModelFile("resources", "AnimatedCube.gltf");
+	Animation animation = LoadAnimationFile("resources", "AnimatedCube.gltf");
+
+	float animationTime = 0.0f;
+	
+
 
 };
 
