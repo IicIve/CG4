@@ -111,6 +111,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Ring* ring = nullptr;
 	Cylinder* cylinder = nullptr;
 	KeyframeAnimation* keyframeAnimation = nullptr;
+	Model::Skeleton skeleton;
 
 	//初期化
 	window = new Window();
@@ -181,9 +182,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	spriteCommon->Initialize(dxCommon);
 	sprite->Initialize(spriteCommon, "resources/uvChecker.png");
 	ModelManager::GetInstance()->Initialize(dxCommon);
-	ModelManager::GetInstance()->LoadModel("AnimatedCube.gltf"); //.objからモデルを読み込む
+	//ModelManager::GetInstance()->LoadModel("walk.gltf"); //.objからモデルを読み込む
 	modelCommon->Initialize(dxCommon);
-	model->initialize(modelCommon, "resources", "AnimatedCube.gltf");
+	model->initialize(modelCommon, "resources", "walk.gltf");
+	skeleton = model->CreateSkeleton(model->GetRootNode());
 	terrainModel->initialize(modelCommon, "resources", "terrain.obj");
 	object3dCommon->Initialize(dxCommon);
 
@@ -308,9 +310,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
 		viewMatrix = Inverse(cameraMatrix);
 
-		YRotateSpeed += 0.01f;
+		//YRotateSpeed += 0.01f;
 		//object3d->SetRotate({ 0.0f, YRotateSpeed, 0.0f });
-		object3d2->SetRotate({ 0.0f, YRotateSpeed, 0.0f });
+		//object3d2->SetRotate({ 0.0f, YRotateSpeed, 0.0f });
 		worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
 		//worldViewProjectionMatrix = Multiply(worldMatrix, Multiply(viewMatrix, projectionMatrix));
 		//wvpData->WVP = worldViewProjectionMatrix;
@@ -403,7 +405,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		camera->Update();
 		keyframeAnimation->Update(1.0f / 60.0f);
-		model->SetRootLocalMatrix(keyframeAnimation->GetModelData().rootNode.localMatrix);
+		keyframeAnimation->ApplyAnimation(skeleton, keyframeAnimation->GetAnimation(), keyframeAnimation->GetAnimationTime());
+		model->Update(skeleton);
 		object3d->Update();
 		object3d2->Update();
 
@@ -422,6 +425,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		object3dCommon->CreatePrimitiveTopology();
 		object3d->Draw();
 		object3d2->Draw();
+		model->DrawSkeleton(skeleton, object3d->GetWorldMatrix(), camera);
 
 		particleManager->Draw();
 		particleManager2->Draw();

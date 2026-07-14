@@ -96,6 +96,7 @@ public:
 	const Vector3& GetScale() const { return transform.scale; }
 	const Vector3& GetRotate() const { return transform.rotate; }
 	const Vector3& GetTranslate() const { return transform.translate; }
+	const Matrix4x4& GetWorldMatrix() const { return worldMatrix; }
 
 private:
 	//関数

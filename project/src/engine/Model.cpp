@@ -3,12 +3,10 @@
 #include "TextureManager.h"
 #include "Logger.h"
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include <fstream>
 #include <sstream>
 #include <cassert>
+#include <cstring>
 
 void Model::initialize(ModelCommon* modelCommon, const std::string& directorypath, const std::string& filename) {
 	this->modelCommon_ = modelCommon;
@@ -42,7 +40,23 @@ void Model::initialize(ModelCommon* modelCommon, const std::string& directorypat
 	modelData.material.textureIndex =
 		TextureManager::GetInstance()->GetSrvIndex(modelData.material.textureFilePath);
 
+	CreateSkeletonLinePipeline();
+	skeletonLineTransformationResource = modelCommon_->GetDxCommon()->CreateBufferResource(256);
+	skeletonLineTransformationResource->Map(0, nullptr, reinterpret_cast<void**>(&skeletonLineTransformationData));
+	skeletonLineTransformationData->viewProjection = MakeIdentity4x4();
 
+}
+
+void Model::Update(Skeleton& skeleton) {
+	// すべてのJointを更新。親が先に作られているので通常ループで処理できる
+	for (Joint& joint : skeleton.joints) {
+		joint.localMatrix = MakeAffineMatrix(joint.transform.scale, joint.transform.rotate, joint.transform.translate);
+		if (joint.parent) {
+			joint.skeletonSpaceMatrix = Multiply(joint.localMatrix, skeleton.joints[*joint.parent].skeletonSpaceMatrix);
+		} else {
+			joint.skeletonSpaceMatrix = joint.localMatrix;
+		}
+	}
 }
 
 void Model::Draw() {
@@ -50,6 +64,52 @@ void Model::Draw() {
 	modelCommon_->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
 	modelCommon_->GetDxCommon()->GetCommandList()->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath));
 	modelCommon_->GetDxCommon()->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+}
+
+void Model::DrawSkeleton(const Skeleton& skeleton, const Matrix4x4& worldMatrix, Camera* camera) {
+	if (!camera || skeleton.joints.empty()) {
+		return;
+	}
+
+	std::vector<SkeletonLineVertex> lineVertices;
+	lineVertices.reserve(skeleton.joints.size() * 2);
+
+	auto GetJointWorldPosition = [&worldMatrix](const Joint& joint) {
+		Matrix4x4 jointWorldMatrix = Multiply(joint.skeletonSpaceMatrix, worldMatrix);
+		return Vector4{
+			jointWorldMatrix.m[3][0],
+			jointWorldMatrix.m[3][1],
+			jointWorldMatrix.m[3][2],
+			1.0f
+		};
+	};
+
+	for (const Joint& joint : skeleton.joints) {
+		Vector4 jointPosition = GetJointWorldPosition(joint);
+		for (int32_t childIndex : joint.children) {
+			const Joint& child = skeleton.joints[childIndex];
+			Vector4 childPosition = GetJointWorldPosition(child);
+			lineVertices.push_back({ jointPosition });
+			lineVertices.push_back({ childPosition });
+		}
+	}
+
+	if (lineVertices.empty()) {
+		return;
+	}
+
+	CreateSkeletonLineVertexResource(lineVertices.size());
+	std::memcpy(skeletonLineVertexData, lineVertices.data(), sizeof(SkeletonLineVertex) * lineVertices.size());
+
+	skeletonLineTransformationData->viewProjection = camera->GetViewProjectionMatrix();
+
+	ID3D12GraphicsCommandList* commandList = modelCommon_->GetDxCommon()->GetCommandList();
+	commandList->SetGraphicsRootSignature(skeletonLineRootSignature.Get());
+	commandList->SetPipelineState(skeletonLinePipelineState.Get());
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+	commandList->IASetVertexBuffers(0, 1, &skeletonLineVertexBufferView);
+	commandList->SetGraphicsRootConstantBufferView(0, skeletonLineTransformationResource->GetGPUVirtualAddress());
+	commandList->DrawInstanced(UINT(lineVertices.size()), 1, 0, 0);
 }
 
 Model::MaterialData Model::LoadMaterialTemplateFile(const std::string& directoryPath, const std::string& filename) {
@@ -128,58 +188,6 @@ Model::ModelData Model::LoadModelFile(const std::string& directoryPath, const st
 
 	modelData.rootNode = ReadNode(scene->mRootNode);
 
-	//while (std::getline(file, line)) {
-	//	std::string identifier;
-	//	std::istringstream s(line);
-	//	s >> identifier;
-
-	//	if (identifier == "v") {
-	//		Vector4 position;
-	//		s >> position.x >> position.y >> position.z;
-	//		position.x *= -1.0f;
-	//		position.w = 1.0f;
-	//		positions.push_back(position);
-	//	} else if (identifier == "vt") {
-	//		Vector2 texcoord;
-	//		s >> texcoord.x >> texcoord.y;
-	//		texcoord.y = 1.0f - texcoord.y;
-	//		texcoords.push_back(texcoord);
-	//	} else if (identifier == "vn") {
-	//		Vector3 normal;
-	//		s >> normal.x >> normal.y >> normal.z;
-	//		normal.x *= -1.0f;
-	//		normals.push_back(normal);
-	//	} else if (identifier == "f") {
-	//		Model::VertexData triangle[3];
-	//		//面は三角形限定
-	//		for (int32_t faceVertex = 0; faceVertex < 3; ++faceVertex) {
-	//			std::string vertexDefinition;
-	//			s >> vertexDefinition;
-	//			//
-	//			std::istringstream v(vertexDefinition);
-	//			uint32_t elementIndices[3];
-	//			for (uint32_t element = 0; element < 3; ++element) {
-	//				std::string index;
-	//				std::getline(v, index, '/');
-	//				elementIndices[element] = std::stoi(index);
-	//			}
-	//			//頂点を構築
-	//			Vector4 position = positions[elementIndices[0] - 1];
-	//			Vector2 texcoord = texcoords[elementIndices[1] - 1];
-	//			Vector3 normal = normals[elementIndices[2] - 1];
-	//			triangle[faceVertex] = { position, texcoord, normal };
-	//			//VertexData vertex = { position, texcoord, normal };
-	//			//modelData.vertices.push_back(vertex);
-	//		}
-	//		modelData.vertices.push_back(triangle[0]);
-	//		modelData.vertices.push_back(triangle[2]);
-	//		modelData.vertices.push_back(triangle[1]);
-	//	} else if (identifier == "mtllib") {
-	//		std::string materialFilename;
-	//		s >> materialFilename;
-	//		modelData.material = LoadMaterialTemplateFile(directoryPath, materialFilename);
-	//	}
-	//}
 	return modelData;
 	
 }
@@ -187,27 +195,36 @@ Model::ModelData Model::LoadModelFile(const std::string& directoryPath, const st
 Model::Node Model::ReadNode(aiNode* node) {
 	Node result;
 
-	aiMatrix4x4 aiLocalMatrix = node->mTransformation;//nodeのlocalMatrixを取得
-	aiLocalMatrix.Transpose();//列ベクトル形式を行ベクトル形式に変換
-	result.localMatrix.m[0][0] = aiLocalMatrix[0][0];
-	result.localMatrix.m[0][1] = aiLocalMatrix[0][1];
-	result.localMatrix.m[0][2] = aiLocalMatrix[0][2];
-	result.localMatrix.m[0][3] = aiLocalMatrix[0][3];
+	aiVector3D scale, translate;
+	aiQuaternion rotate;
 
-	result.localMatrix.m[1][0] = aiLocalMatrix[1][0];
-	result.localMatrix.m[1][1] = aiLocalMatrix[1][1];
-	result.localMatrix.m[1][2] = aiLocalMatrix[1][2];
-	result.localMatrix.m[1][3] = aiLocalMatrix[1][3];
+	node->mTransformation.Decompose(scale, rotate, translate);//assimpの行列からSRTを抽出する関数を利用
+	result.transform.scale = { scale.x, scale.y, scale.z };//Scaleはそのまま
+	result.transform.rotate = { rotate.x, -rotate.y, -rotate.z, rotate.w };//X軸を反転さらに回転軸が逆なので軸を反転させる
+	result.transform.translate = { -translate.x, translate.y, translate.z };//X軸を反転
+	result.localMatrix = MakeAffineMatrix(result.transform.scale, result.transform.rotate, result.transform.translate);
 
-	result.localMatrix.m[2][0] = aiLocalMatrix[2][0];
-	result.localMatrix.m[2][1] = aiLocalMatrix[2][1];
-	result.localMatrix.m[2][2] = aiLocalMatrix[2][2];
-	result.localMatrix.m[2][3] = aiLocalMatrix[2][3];
+	//aiMatrix4x4 aiLocalMatrix = node->mTransformation;//nodeのlocalMatrixを取得
+	//aiLocalMatrix.Transpose();//列ベクトル形式を行ベクトル形式に変換
+	//result.localMatrix.m[0][0] = aiLocalMatrix[0][0];
+	//result.localMatrix.m[0][1] = aiLocalMatrix[0][1];
+	//result.localMatrix.m[0][2] = aiLocalMatrix[0][2];
+	//result.localMatrix.m[0][3] = aiLocalMatrix[0][3];
 
-	result.localMatrix.m[3][0] = aiLocalMatrix[3][0];
-	result.localMatrix.m[3][1] = aiLocalMatrix[3][1];
-	result.localMatrix.m[3][2] = aiLocalMatrix[3][2];
-	result.localMatrix.m[3][3] = aiLocalMatrix[3][3];
+	//result.localMatrix.m[1][0] = aiLocalMatrix[1][0];
+	//result.localMatrix.m[1][1] = aiLocalMatrix[1][1];
+	//result.localMatrix.m[1][2] = aiLocalMatrix[1][2];
+	//result.localMatrix.m[1][3] = aiLocalMatrix[1][3];
+
+	//result.localMatrix.m[2][0] = aiLocalMatrix[2][0];
+	//result.localMatrix.m[2][1] = aiLocalMatrix[2][1];
+	//result.localMatrix.m[2][2] = aiLocalMatrix[2][2];
+	//result.localMatrix.m[2][3] = aiLocalMatrix[2][3];
+
+	//result.localMatrix.m[3][0] = aiLocalMatrix[3][0];
+	//result.localMatrix.m[3][1] = aiLocalMatrix[3][1];
+	//result.localMatrix.m[3][2] = aiLocalMatrix[3][2];
+	//result.localMatrix.m[3][3] = aiLocalMatrix[3][3];
 
 	result.name = node->mName.C_Str();//node名を格納
 	result.children.resize(node->mNumChildren);//子ノードの数だけ確保
@@ -217,4 +234,132 @@ Model::Node Model::ReadNode(aiNode* node) {
 	}
 
 	return result;
+}
+
+Model::Skeleton Model::CreateSkeleton(const Node& rootNode) {
+	Skeleton skeleton;
+	skeleton.root = CreateJoint(rootNode, {}, skeleton.joints);
+
+	for (const Joint& joint : skeleton.joints) {
+		skeleton.jointMap.emplace(joint.name, joint.index);
+	}
+
+	return skeleton;
+}
+
+int32_t Model::CreateJoint(const Node& node, const std::optional<int32_t>& parent, std::vector<Joint>& joints) {
+	Joint joint;
+	joint.name = node.name;
+	joint.localMatrix = node.localMatrix;
+	joint.skeletonSpaceMatrix = MakeIdentity4x4();
+	joint.transform = node.transform;
+	joint.index = int32_t(joints.size());
+	joint.parent = parent;
+	joints.push_back(joint);
+	for (const Node& child : node.children) {
+		//子jointを作成しそのindexを登録
+		int32_t childIndex = CreateJoint(child, joint.index, joints);
+		joints[joint.index].children.push_back(childIndex);
+	}
+
+	//自身のindexを返す
+	return joint.index;
+}
+
+void Model::CreateSkeletonLinePipeline() {
+	HRESULT hr;
+
+	D3D12_ROOT_SIGNATURE_DESC descriptionRootSignature{};
+	descriptionRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+	D3D12_ROOT_PARAMETER rootParameters[1] = {};
+	rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+	rootParameters[0].Descriptor.ShaderRegister = 0;
+	rootParameters[0].Descriptor.RegisterSpace = 0;
+	descriptionRootSignature.pParameters = rootParameters;
+	descriptionRootSignature.NumParameters = _countof(rootParameters);
+
+	Microsoft::WRL::ComPtr<ID3DBlob> signatureBlob = nullptr;
+	Microsoft::WRL::ComPtr<ID3DBlob> errorBlob = nullptr;
+	hr = D3D12SerializeRootSignature(
+		&descriptionRootSignature,
+		D3D_ROOT_SIGNATURE_VERSION_1,
+		&signatureBlob,
+		&errorBlob);
+	if (FAILED(hr)) {
+		if (errorBlob) {
+			Logger::Log(reinterpret_cast<char*>(errorBlob->GetBufferPointer()));
+		}
+		assert(false);
+	}
+
+	hr = modelCommon_->GetDxCommon()->GetDevice()->CreateRootSignature(
+		0,
+		signatureBlob->GetBufferPointer(),
+		signatureBlob->GetBufferSize(),
+		IID_PPV_ARGS(&skeletonLineRootSignature));
+	assert(SUCCEEDED(hr));
+
+	D3D12_INPUT_ELEMENT_DESC inputElementDescs[1] = {};
+	inputElementDescs[0].SemanticName = "POSITION";
+	inputElementDescs[0].SemanticIndex = 0;
+	inputElementDescs[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	inputElementDescs[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+	D3D12_INPUT_LAYOUT_DESC inputLayoutDesc{};
+	inputLayoutDesc.pInputElementDescs = inputElementDescs;
+	inputLayoutDesc.NumElements = _countof(inputElementDescs);
+
+	Microsoft::WRL::ComPtr<IDxcBlob> vertexShaderBlob =
+		modelCommon_->GetDxCommon()->CompileShader(L"resources/shaders/SkeletonLine.VS.hlsl", L"vs_6_0");
+	assert(vertexShaderBlob != nullptr);
+	Microsoft::WRL::ComPtr<IDxcBlob> pixelShaderBlob =
+		modelCommon_->GetDxCommon()->CompileShader(L"resources/shaders/SkeletonLine.PS.hlsl", L"ps_6_0");
+	assert(pixelShaderBlob != nullptr);
+
+	D3D12_BLEND_DESC blendDesc{};
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	D3D12_RASTERIZER_DESC rasterizerDesc{};
+	rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+	rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+
+	D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+	depthStencilDesc.DepthEnable = false;
+	depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC graphicsPipeLineStateDesc{};
+	graphicsPipeLineStateDesc.pRootSignature = skeletonLineRootSignature.Get();
+	graphicsPipeLineStateDesc.InputLayout = inputLayoutDesc;
+	graphicsPipeLineStateDesc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
+	graphicsPipeLineStateDesc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
+	graphicsPipeLineStateDesc.BlendState = blendDesc;
+	graphicsPipeLineStateDesc.RasterizerState = rasterizerDesc;
+	graphicsPipeLineStateDesc.NumRenderTargets = 1;
+	graphicsPipeLineStateDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	graphicsPipeLineStateDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+	graphicsPipeLineStateDesc.SampleDesc.Count = 1;
+	graphicsPipeLineStateDesc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+	graphicsPipeLineStateDesc.DepthStencilState = depthStencilDesc;
+	graphicsPipeLineStateDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+	hr = modelCommon_->GetDxCommon()->GetDevice()->CreateGraphicsPipelineState(
+		&graphicsPipeLineStateDesc,
+		IID_PPV_ARGS(&skeletonLinePipelineState));
+	assert(SUCCEEDED(hr));
+}
+
+void Model::CreateSkeletonLineVertexResource(size_t vertexCount) {
+	if (vertexCount <= skeletonLineVertexCapacity) {
+		return;
+	}
+
+	skeletonLineVertexCapacity = vertexCount;
+	skeletonLineVertexResource = modelCommon_->GetDxCommon()->CreateBufferResource(sizeof(SkeletonLineVertex) * skeletonLineVertexCapacity);
+	skeletonLineVertexResource->Map(0, nullptr, reinterpret_cast<void**>(&skeletonLineVertexData));
+
+	skeletonLineVertexBufferView.BufferLocation = skeletonLineVertexResource->GetGPUVirtualAddress();
+	skeletonLineVertexBufferView.SizeInBytes = UINT(sizeof(SkeletonLineVertex) * skeletonLineVertexCapacity);
+	skeletonLineVertexBufferView.StrideInBytes = sizeof(SkeletonLineVertex);
 }

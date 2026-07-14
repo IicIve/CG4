@@ -61,21 +61,17 @@ void Object3d::Update() {
 	//transform.rotate.y += 0.02f;
 
 	worldMatrix = MakeAffineMatrix(transform.scale, transform.rotate, transform.translate);
-	Matrix4x4 worldMatrixWithRoot = worldMatrix;
-	if (model) {
-		worldMatrixWithRoot = Multiply(model->GetRootNode().localMatrix, worldMatrix);
-	}
 
 	if (camera) {
 		const Matrix4x4& viewProjectionMatrix = camera->GetViewProjectionMatrix();
-		worldViewProjectionMatrix = Multiply(worldMatrixWithRoot, viewProjectionMatrix);
+		worldViewProjectionMatrix = Multiply(worldMatrix, viewProjectionMatrix);
 		cameraData->worldPosition = camera->GetTranslate();
 	} else {
-		worldViewProjectionMatrix = worldMatrixWithRoot;
+		worldViewProjectionMatrix = worldMatrix;
 	}
 
 	transformationMatrixData->WVP = worldViewProjectionMatrix;
-	transformationMatrixData->World = worldMatrixWithRoot;
+	transformationMatrixData->World = worldMatrix;
 
 }
 

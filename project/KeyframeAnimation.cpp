@@ -73,6 +73,26 @@ void KeyframeAnimation::Update(float deltaTime) {
 	model.rootNode.localMatrix = MakeAffineMatrix(scale, rotate, translate);
 }
 
+void KeyframeAnimation::ApplyAnimation(Model::Skeleton& skeleton, const Animation& animation, float animationTime) {
+	for (Model::Joint& joint: skeleton.joints) {
+		//対象のジョイントがあれば値の適用を行う
+		if (auto it = animation.nodeAnimations.find(joint.name); it != animation.nodeAnimations.end()) {
+			const NodeAnimation& rootNodeAnimation = (*it).second;
+			if (!rootNodeAnimation.translate.empty()) {
+				joint.transform.translate = CalculateValue(rootNodeAnimation.translate, animationTime);
+			}
+			if (!rootNodeAnimation.rotate.empty()) {
+				joint.transform.rotate = CalculateValue(rootNodeAnimation.rotate, animationTime);
+			}
+			if (!rootNodeAnimation.scale.empty()) {
+				joint.transform.scale = CalculateValue(rootNodeAnimation.scale, animationTime);
+			}
+		}
+	}
+
+
+}
+
 Vector3 KeyframeAnimation::CalculateValue(const std::vector<KeyframeVector3>& keyframes, float time) {
 	assert(!keyframes.empty());
 	if (keyframes.size() == 1 || time <= keyframes[0].time) {
