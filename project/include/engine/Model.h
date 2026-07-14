@@ -56,6 +56,7 @@ public:
 
 	struct ModelData {
 		std::vector<VertexData> vertices;
+		std::vector<uint32_t> indices;
 		MaterialData material;
 		Node rootNode;
 	};
@@ -142,6 +143,10 @@ private:
 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> skeletonLineRootSignature = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> skeletonLinePipelineState = nullptr;
+
+	Microsoft::WRL::ComPtr<ID3D12Resource> indexResource;
+	D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+	std::uint32_t* indexData = nullptr;
 
 };
 

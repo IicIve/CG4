@@ -25,6 +25,15 @@ void Model::initialize(ModelCommon* modelCommon, const std::string& directorypat
 	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexData));
 	std::memcpy(vertexData, modelData.vertices.data(), sizeof(VertexData) * modelData.vertices.size());
 
+	indexResource = modelCommon_->GetDxCommon()->CreateBufferResource(sizeof(uint32_t) * modelData.indices.size());
+
+	indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress();
+	indexBufferView.SizeInBytes = sizeof(uint32_t) * modelData.indices.size();
+	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+
+	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexData));
+	std::memcpy(indexData, modelData.indices.data(), sizeof(uint32_t) * modelData.indices.size());
+
 	//マテリアル用のリソース作成
 	materialResource = modelCommon_->GetDxCommon()->CreateBufferResource(256);
 	materialData = nullptr;
@@ -61,9 +70,10 @@ void Model::Update(Skeleton& skeleton) {
 
 void Model::Draw() {
 	modelCommon_->GetDxCommon()->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);
+	modelCommon_->GetDxCommon()->GetCommandList()->IASetIndexBuffer(&indexBufferView);
 	modelCommon_->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(0, materialResource->GetGPUVirtualAddress());
 	modelCommon_->GetDxCommon()->GetCommandList()->SetGraphicsRootDescriptorTable(2, TextureManager::GetInstance()->GetSrvHandleGPU(modelData.material.textureFilePath));
-	modelCommon_->GetDxCommon()->GetCommandList()->DrawInstanced(UINT(modelData.vertices.size()), 1, 0, 0);
+	modelCommon_->GetDxCommon()->GetCommandList()->DrawIndexedInstanced(UINT(modelData.indices.size()), 1, 0, 0, 0);
 }
 
 void Model::DrawSkeleton(const Skeleton& skeleton, const Matrix4x4& worldMatrix, Camera* camera) {
@@ -155,26 +165,48 @@ Model::ModelData Model::LoadModelFile(const std::string& directoryPath, const st
 		aiMesh* mesh = scene->mMeshes[meshIndex];
 		assert(mesh->HasNormals());//法線がないメッシュは非対応
 		assert(mesh->HasTextureCoords(0));//テクスチャ座標がないメッシュは非対応
+		modelData.vertices.resize(mesh->mNumVertices);//最初に頂点数分のメモリを確保しておく
+
+		for (uint32_t vertexIndex = 0; vertexIndex < mesh->mNumVertices; ++vertexIndex) {
+			aiVector3D& position = mesh->mVertices[vertexIndex];
+			aiVector3D& normal = mesh->mNormals[vertexIndex];
+			aiVector3D& texcoord = mesh->mTextureCoords[0][vertexIndex];
+
+			//右手系から左手系に変換
+			modelData.vertices[vertexIndex].position = { -position.x, position.y, position.z, 1.0f };
+			modelData.vertices[vertexIndex].normal = { -normal.x, normal.y, normal.z };
+			modelData.vertices[vertexIndex].texcoord = { texcoord.x, texcoord.y };
+		}
 
 		for (uint32_t faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex) {
 			aiFace& face = mesh->mFaces[faceIndex];
-			assert(face.mNumIndices == 3);//三角形のみサポート
+			assert(face.mNumIndices == 3);
 
 			for (uint32_t element = 0; element < face.mNumIndices; ++element) {
 				uint32_t vertexIndex = face.mIndices[element];
-				aiVector3D& position = mesh->mVertices[vertexIndex];
-				aiVector3D& normal = mesh->mNormals[vertexIndex];
-				aiVector3D& texcoord = mesh->mTextureCoords[0][vertexIndex];
-				VertexData vertex;
-				vertex.position = { position.x, position.y, position.z, 1.0f };
-				vertex.normal = { normal.x, normal.y, normal.z };
-				vertex.texcoord = { texcoord.x, texcoord.y };
-				//aiProcess_MakeLeftHandedはz*=-1で右手->左手に変換するので手動で対処
-				vertex.position.x *= -1.0f;
-				vertex.normal.x *= -1.0f;
-				modelData.vertices.push_back(vertex);
+				modelData.indices.push_back(vertexIndex);
 			}
+		
 		}
+			
+			//aiFace& face = mesh->mFaces[faceIndex];
+			//assert(face.mNumIndices == 3);//三角形のみサポート
+
+			//for (uint32_t element = 0; element < face.mNumIndices; ++element) {
+			//	uint32_t vertexIndex = face.mIndices[element];
+			//	aiVector3D& position = mesh->mVertices[vertexIndex];
+			//	aiVector3D& normal = mesh->mNormals[vertexIndex];
+			//	aiVector3D& texcoord = mesh->mTextureCoords[0][vertexIndex];
+			//	VertexData vertex;
+			//	vertex.position = { position.x, position.y, position.z, 1.0f };
+			//	vertex.normal = { normal.x, normal.y, normal.z };
+			//	vertex.texcoord = { texcoord.x, texcoord.y };
+			//	//aiProcess_MakeLeftHandedはz*=-1で右手->左手に変換するので手動で対処
+			//	vertex.position.x *= -1.0f;
+			//	vertex.normal.x *= -1.0f;
+			//	modelData.vertices.push_back(vertex);
+			//}
+		
 	}
 
 	for (uint32_t materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex) {
