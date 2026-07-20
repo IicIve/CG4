@@ -56,6 +56,7 @@ public:
 	struct TransformationMatrix {
 		Matrix4x4 WVP;
 		Matrix4x4 World;
+		Matrix4x4 WorldInverseTranspose;
 	};
 
 	struct DirectionalLight {
@@ -82,6 +83,7 @@ public:
 	void Initialize(Object3dCommon* object3dCommon);
 	void Update();
 	void Draw();
+	void Draw(const Model::SkinCluster& skinCluster);
 	void SetModel(const std::string& filePath);
 
 	//setter

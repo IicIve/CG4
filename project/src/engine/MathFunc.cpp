@@ -102,6 +102,16 @@ Matrix4x4 Inverse(const Matrix4x4& m1) {
 	return result;
 }
 
+Matrix4x4 Transpose(const Matrix4x4& m) {
+	Matrix4x4 result{};
+	for (int row = 0; row < 4; ++row) {
+		for (int col = 0; col < 4; ++col) {
+			result.m[row][col] = m.m[col][row];
+		}
+	}
+	return result;
+}
+
 Matrix4x4 MakeAffineMatrix(const Vector3& scale, const Vector3& rotate, const Vector3& translate) {
 
 	Matrix4x4 MakeRotateXMatrix;

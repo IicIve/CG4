@@ -20,7 +20,7 @@ void Object3d::Initialize(Object3dCommon* object3dCommon) {
 	wvpResource->Map(0, nullptr, reinterpret_cast<void**>(&transformationMatrixData));
 	transformationMatrixData->WVP = MakeIdentity4x4();
 	transformationMatrixData->World = MakeIdentity4x4();
-	*transformationMatrixData = { transformationMatrixData->WVP, transformationMatrixData->World };
+	transformationMatrixData->WorldInverseTranspose = MakeIdentity4x4();
 
 	//光源用のリソース作成
 	directionalLightResource = object3dCommon->GetDxCommon()->CreateBufferResource(sizeof(DirectionalLight));
@@ -72,6 +72,7 @@ void Object3d::Update() {
 
 	transformationMatrixData->WVP = worldViewProjectionMatrix;
 	transformationMatrixData->World = worldMatrix;
+	transformationMatrixData->WorldInverseTranspose = Transpose(Inverse(worldMatrix));
 
 }
 
@@ -83,6 +84,17 @@ void Object3d::Draw() {
 	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(6, pointLightResource->GetGPUVirtualAddress());
 	if (model) {
 		model->Draw();
+	}
+}
+
+void Object3d::Draw(const Model::SkinCluster& skinCluster) {
+	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(1, wvpResource->GetGPUVirtualAddress());
+	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(3, directionalLightResource->GetGPUVirtualAddress());
+	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(4, cameraResource->GetGPUVirtualAddress());
+	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootDescriptorTable(5, TextureManager::GetInstance()->GetSrvHandleGPU("resources/rostock_laage_airport_4k.dds"));
+	object3dCommon->GetDxCommon()->GetCommandList()->SetGraphicsRootConstantBufferView(6, pointLightResource->GetGPUVirtualAddress());
+	if (model) {
+		model->Draw(skinCluster);
 	}
 }
 

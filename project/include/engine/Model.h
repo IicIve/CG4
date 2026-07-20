@@ -3,6 +3,7 @@
 #include <dxgi1_6.h>
 #include <wrl.h>
 #include <d3d12.h>
+#include <array>
 #include <cstdint>
 #include <cstddef>
 #include <string>
@@ -11,6 +12,8 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <optional>
+#include <span>
+#include <utility>
 
 #include "ModelCommon.h"
 #include "Vector.h"
@@ -21,9 +24,16 @@
 
 //class ModelCommon;
 struct aiNode;
+class SrvManager;
 
 using namespace Vector;
 using namespace Matrix;
+
+const uint32_t kNumMaxInfluence = 4;
+struct VertexInfluence {
+	std::array<float, kNumMaxInfluence> weights;
+	std::array<int32_t, kNumMaxInfluence> jointIndices;
+};
 
 class Model {
 public:
@@ -54,11 +64,22 @@ public:
 		std::vector<Node> children;
 	};
 
+	struct VertexWeightData {
+		float weight;
+		uint32_t vertexIndex;
+	};
+
+	struct JointWeightData {
+		Matrix4x4 inverseBindPoseMatrix;
+		std::vector<VertexWeightData> vertexWeights;
+	};
+
 	struct ModelData {
 		std::vector<VertexData> vertices;
 		std::vector<uint32_t> indices;
 		MaterialData material;
 		Node rootNode;
+		std::map<std::string, JointWeightData> skinClusterData;
 	};
 
 	struct Material {
@@ -92,16 +113,36 @@ public:
 		Matrix4x4 viewProjection;
 	};
 
+	struct WellForGPU {
+		Matrix4x4 skeletonSpaceMatrix;
+		Matrix4x4 skeletonSpaceInverseTransposeMatrix;
+	};
+
+	struct SkinCluster {
+		std::vector<Matrix4x4> inverseBindPoseMatrices;
+		Microsoft::WRL::ComPtr<ID3D12Resource> influenceResource;
+		D3D12_VERTEX_BUFFER_VIEW influenceBufferView;
+		std::span<VertexInfluence> mappedInfluence;
+		Microsoft::WRL::ComPtr<ID3D12Resource> paletteResource;
+		std::span<WellForGPU> mappedPalette;
+		uint32_t paletteSrvIndex = 0;
+		std::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE> paletteSrvHandle;
+	};
+
 	//関数
 
 	void initialize(ModelCommon* modelCommon, const std::string& directorypath, const std::string& filename);
 	void Update(Skeleton& skeleton);
+	void Update(SkinCluster& skinCluster, Skeleton& skeleton);
 	void Draw();
+	void Draw(const SkinCluster& skinCluster);
 	void DrawSkeleton(const Skeleton& skeleton, const Matrix4x4& worldMatrix, Camera* camera);
 	static ModelData LoadModelFile(const std::string& directoryPath, const std::string& filename);
 	Skeleton CreateSkeleton(const Node& rootNode);
+	SkinCluster CreateSkinCluster(ID3D12Device* device, SrvManager* srvManager, const Skeleton& skeleton, const ModelData& modelData);
 
 	const Node& GetRootNode() const { return modelData.rootNode; }
+	const ModelData& GetModelData() const { return modelData; }
 	void SetRootLocalMatrix(const Matrix4x4& localMatrix) { modelData.rootNode.localMatrix = localMatrix; }
 
 private:

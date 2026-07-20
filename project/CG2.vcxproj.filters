@@ -134,12 +134,10 @@
   <ItemGroup>
     <FxCompile Include="resources\shaders\Object3d.PS.hlsl" />
     <FxCompile Include="resources\shaders\Object3d.VS.hlsl" />
-    <FxCompile Include="resources\shaders\SkyBox.PS.hlsl" />
-    <FxCompile Include="resources\shaders\SkyBox.VS.hlsl" />
+    <FxCompile Include="resources\shaders\SkinningObject3d.VS.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
-    <None Include="resources\shaders\SkyBox.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="externals\imgui\imconfig.h">

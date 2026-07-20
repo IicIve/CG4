@@ -112,6 +112,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Cylinder* cylinder = nullptr;
 	KeyframeAnimation* keyframeAnimation = nullptr;
 	Model::Skeleton skeleton;
+	Model::SkinCluster skinCluster;
 
 	//初期化
 	window = new Window();
@@ -186,6 +187,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	modelCommon->Initialize(dxCommon);
 	model->initialize(modelCommon, "resources", "walk.gltf");
 	skeleton = model->CreateSkeleton(model->GetRootNode());
+	skinCluster = model->CreateSkinCluster(dxCommon->GetDevice(), srvManager, skeleton, model->GetModelData());
 	terrainModel->initialize(modelCommon, "resources", "terrain.obj");
 	object3dCommon->Initialize(dxCommon);
 
@@ -407,6 +409,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		keyframeAnimation->Update(1.0f / 60.0f);
 		keyframeAnimation->ApplyAnimation(skeleton, keyframeAnimation->GetAnimation(), keyframeAnimation->GetAnimationTime());
 		model->Update(skeleton);
+		model->Update(skinCluster, skeleton);
 		object3d->Update();
 		object3d2->Update();
 
@@ -418,12 +421,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		ring->CreatePrimitiveTopology();
 		ring->Draw();*/
 
-		cylinder->Update(camera);
+		/*cylinder->Update(camera);
 		cylinder->CreatePrimitiveTopology();
-		cylinder->Draw();
+		cylinder->Draw();*/
+
+		object3dCommon->CreateSkinningPrimitiveTopology();
+		object3d->Draw(skinCluster);
 
 		object3dCommon->CreatePrimitiveTopology();
-		object3d->Draw();
 		object3d2->Draw();
 		model->DrawSkeleton(skeleton, object3d->GetWorldMatrix(), camera);
 
