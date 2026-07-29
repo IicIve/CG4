@@ -108,6 +108,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	ParticleManager* particleManager2 = nullptr;
 	ParticleManager* smokeManager = nullptr;
 	ParticleManager* flashManager = nullptr;
+	ParticleManager* handParticleManager = nullptr;
+	ParticleManager* leftHandParticleManager = nullptr;
 	Ring* ring = nullptr;
 	Cylinder* cylinder = nullptr;
 	KeyframeAnimation* keyframeAnimation = nullptr;
@@ -132,6 +134,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	particleManager2 = new ParticleManager();
 	smokeManager = new ParticleManager();
 	flashManager = new ParticleManager();
+	handParticleManager = new ParticleManager();
+	leftHandParticleManager = new ParticleManager();
 	ring = new Ring();
 	cylinder = new Cylinder();
 	keyframeAnimation = new KeyframeAnimation();
@@ -188,6 +192,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	model->initialize(modelCommon, "resources", "walk.gltf");
 	skeleton = model->CreateSkeleton(model->GetRootNode());
 	skinCluster = model->CreateSkinCluster(dxCommon->GetDevice(), srvManager, skeleton, model->GetModelData());
+	const auto rightHandJointIt = skeleton.jointMap.find("mixamorig:RightHand");
+	const int32_t rightHandJointIndex = rightHandJointIt != skeleton.jointMap.end() ? rightHandJointIt->second : -1;
+	const auto leftHandJointIt = skeleton.jointMap.find("mixamorig:LeftHand");
+	const int32_t leftHandJointIndex = leftHandJointIt != skeleton.jointMap.end() ? leftHandJointIt->second : -1;
 	terrainModel->initialize(modelCommon, "resources", "terrain.obj");
 	object3dCommon->Initialize(dxCommon);
 
@@ -229,6 +237,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	flashManager->SetSpeed(0.0f);
 	flashManager->SetUniformScaleRange(8.0f, 8.0f);
 	flashManager->SetScaleVelocity(8.0f);
+	handParticleManager->Initialize(dxCommon, srvManager, camera, "resources/circle.png", ParticleManager::PrimitiveType::Plane, ParticleManager::BlendMode::Add);
+	handParticleManager->SetPlaneSize(0.5f, 0.5f);
+	handParticleManager->SetEmitCount(1);
+	handParticleManager->SetColor({ 0.05f, 1.0f, 0.05f, 0.8f });
+	handParticleManager->SetLifeTimeRange(1.2f, 2.4f);
+	handParticleManager->SetSpeedRange(0.0f, 0.02f);
+	handParticleManager->SetUniformScaleRange(0.25f, 0.5f);
+	handParticleManager->SetScaleVelocityRange(0.1f, 0.2f);
+	leftHandParticleManager->Initialize(dxCommon, srvManager, camera, "resources/circle.png", ParticleManager::PrimitiveType::Plane, ParticleManager::BlendMode::Add);
+	leftHandParticleManager->SetPlaneSize(0.5f, 0.5f);
+	leftHandParticleManager->SetEmitCount(1);
+	leftHandParticleManager->SetColor({ 1.0f, 0.05f, 0.9f, 0.8f });
+	leftHandParticleManager->SetLifeTimeRange(1.2f, 2.4f);
+	leftHandParticleManager->SetSpeedRange(0.0f, 0.02f);
+	leftHandParticleManager->SetUniformScaleRange(0.25f, 0.5f);
+	leftHandParticleManager->SetScaleVelocityRange(0.1f, 0.2f);
 
 	//camera->SetRotate({ 0.0f,0.0f,0.0f });
 	//camera->SetTranslate({ 0.0f,0.0f,0.0f });
@@ -281,6 +305,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	Vector3 debugCameraTranslate = camera->GetTranslate();
 	const float mouseRotateSensitivity = 0.002f;
 	const float mouseWheelSensitivity = 0.01f;
+	Vector3 skinningModelTranslate = object3d->GetTranslate();
+	Vector3 skinningModelRotate = object3d->GetRotate();
+	const float skinningModelMoveSpeed = 0.05f;
+	const float skinningModelRotateSpeed = 0.03f;
 
 	//メインループ
 	MSG msg{};
@@ -308,6 +336,29 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		camera->SetRotate(debugCameraRotate);
 		camera->SetTranslate(debugCameraTranslate);
+
+		float currentMoveSpeed = skinningModelMoveSpeed;
+	
+		if (input->PushKey(DIK_W)) {
+			skinningModelTranslate.z += currentMoveSpeed;
+		} else if(input->PushKey(DIK_S)) {
+			skinningModelTranslate.z -= currentMoveSpeed;
+		}
+
+		if (input->PushKey(DIK_A)) {
+			skinningModelTranslate.x -= currentMoveSpeed;
+		} else if (input->PushKey(DIK_D)) {
+			skinningModelTranslate.x += currentMoveSpeed;
+		}
+
+		if (input->PushKey(DIK_LEFT)) {
+			skinningModelRotate.y -= skinningModelRotateSpeed;
+		} else if (input->PushKey(DIK_RIGHT)) {
+			skinningModelRotate.y += skinningModelRotateSpeed;
+		}
+
+		object3d->SetTranslate(skinningModelTranslate);
+		object3d->SetRotate(skinningModelRotate);
 
 		cameraMatrix = MakeAffineMatrix(cameraTransform.scale, cameraTransform.rotate, cameraTransform.translate);
 		viewMatrix = Inverse(cameraMatrix);
@@ -357,47 +408,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 
-		/*ImGui_ImplDX12_NewFrame();
-		ImGui_ImplWin32_NewFrame();
-		ImGui::NewFrame();
-		ImGui::ShowDemoWindow();
-		ImGui::DragFloat3("cameraScale", &cameraTransform.scale.x, 0.01f);
-		ImGui::DragFloat3("cameraRotate", &cameraTransform.rotate.x, 0.01f);
-		ImGui::DragFloat3("cameraTranslate", &cameraTransform.translate.x, 0.01f);
-		ImGui::DragFloat3("transform", &transform.translate.x, 0.01f);
-		ImGui::DragFloat2("transformSprite", &transformSprite.translate.x, 1.0f);*/
-		//ImGui::DragFloat3("Light", &directionalLightData->direction.x, 0.01f);
-		//ImGui::DragFloat2("UVTranslate", &uvTransformSprite.translate.x, 1.0f);
-		//ImGui::ColorEdit3("Triangle Color", triangleColor);
-		////ImGui::Checkbox("useMonsterBall", &useMonsterBall);
-		//*materialData = Material{ Vector4{triangleColor[0], triangleColor[1], triangleColor[2], 0.0f}, 1 };
-		//*materialData = Material{ Vector4{triangleColor[0], triangleColor[1], triangleColor[2], 1.0f}, 1, {0,0,0}, MakeIdentity4x4() };
-		////*materialData = Vector4(triangleColor[0], triangleColor[1], triangleColor[2], 1.0f);
-
-		/*{
-			Vector3& dir = directionalLightData->direction;
-			float len = std::sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
-			if (len > 0.0001f) {
-				dir.x /= len;
-				dir.y /= len;
-				dir.z /= len;
-			}
-		}*/
-
-		//if (fence->GetCompletedValue() < fenceValue) {
-		//	fence->SetEventOnCompletion(fenceValue, fenceEvent);
-		//	WaitForSingleObject(fenceEvent, INFINITE);
-		//}
-
-		//hr = commandAllocator->Reset();
-		//assert(SUCCEEDED(hr));
-		//hr = commandList->Reset(commandAllocator, nullptr);
-		//assert(SUCCEEDED(hr));
-
-		//UINT backBufferIndex = swapChain->GetCurrentBackBufferIndex();
-
-		
-
 		srvManager->PreDraw();
 		dxCommon->PreDraw();
 
@@ -412,6 +422,27 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		model->Update(skinCluster, skeleton);
 		object3d->Update();
 		object3d2->Update();
+
+		if (rightHandJointIndex >= 0) {
+			const Matrix4x4 rightHandWorldMatrix = Multiply(skeleton.joints[rightHandJointIndex].skeletonSpaceMatrix, object3d->GetWorldMatrix());
+			const Vector3 rightHandPosition = {
+				rightHandWorldMatrix.m[3][0],
+				rightHandWorldMatrix.m[3][1] + 0.15f,
+				rightHandWorldMatrix.m[3][2],
+			};
+			handParticleManager->Emit(rightHandPosition);
+		}
+		handParticleManager->Update(1.0f / 60.0f);
+		if (leftHandJointIndex >= 0) {
+			const Matrix4x4 leftHandWorldMatrix = Multiply(skeleton.joints[leftHandJointIndex].skeletonSpaceMatrix, object3d->GetWorldMatrix());
+			const Vector3 leftHandPosition = {
+				leftHandWorldMatrix.m[3][0],
+				leftHandWorldMatrix.m[3][1] + 0.15f,
+				leftHandWorldMatrix.m[3][2],
+			};
+			leftHandParticleManager->Emit(leftHandPosition);
+		}
+		leftHandParticleManager->Update(1.0f / 60.0f);
 
 		/*skyBox->Update(camera);
 		skyBox->CreatePrimitiveTopology();
@@ -436,6 +467,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		particleManager2->Draw();
 		flashManager->Draw();
 		smokeManager->Draw();
+		handParticleManager->Draw();
+		leftHandParticleManager->Draw();
 		
 
 		dxCommon->PostDraw();
@@ -467,6 +500,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	delete particleManager2;
 	delete smokeManager;
 	delete flashManager;
+	delete handParticleManager;
+	delete leftHandParticleManager;
 	delete keyframeAnimation;
 	delete srvManager;
 	delete window;
@@ -495,78 +530,4 @@ static LONG WINAPI ExportDump(EXCEPTION_POINTERS* exception) {
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }
-
-Matrix4x4 MakeViewportMatrix(float left, float top, float width, float height, float minDepth, float maxDepth) {
-	Matrix4x4 result;
-
-	result.m[0][0] = width / 2.0f;
-	result.m[0][1] = 0.0f;
-	result.m[0][2] = 0.0f;
-	result.m[0][3] = 0.0f;
-
-	result.m[1][0] = 0.0f;
-	result.m[1][1] = -(height / 2.0f);
-	result.m[1][2] = 0.0f;
-	result.m[1][3] = 0.0f;
-
-	result.m[2][0] = 0.0f;
-	result.m[2][1] = 0.0f;
-	result.m[2][2] = maxDepth - minDepth;
-	result.m[2][3] = 0.0f;
-
-	result.m[3][0] = left + width / 2.0f;
-	result.m[3][1] = top + height / 2.0f;
-	result.m[3][2] = minDepth;
-	result.m[3][3] = 1.0f;
-
-	return result;
-}
-
-ID3D12Resource* CreateDepthStencilTextureResource(ID3D12Device* device, int32_t width, int32_t height) {
-	//生成するResourceの設定
-	D3D12_RESOURCE_DESC resourceDesc{};
-	resourceDesc.Width = width;
-	resourceDesc.Height = height;
-	resourceDesc.MipLevels = 1;
-	resourceDesc.DepthOrArraySize = 1;
-	resourceDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	resourceDesc.SampleDesc.Count = 1;
-	resourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-
-	//利用するHeapの設定
-	D3D12_HEAP_PROPERTIES heapProperties{};
-	heapProperties.Type = D3D12_HEAP_TYPE_DEFAULT;
-
-	//深度値のクリア設定
-	D3D12_CLEAR_VALUE depthClearValue{};
-	depthClearValue.DepthStencil.Depth = 1.0f;
-	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-
-	//Resourceの生成
-	ID3D12Resource* resource = nullptr;
-	HRESULT hr = device->CreateCommittedResource(
-		&heapProperties,
-		D3D12_HEAP_FLAG_NONE,
-		&resourceDesc,
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		&depthClearValue,
-		IID_PPV_ARGS(&resource));
-	assert(SUCCEEDED(hr));
-
-	return resource;
-}
-
-D3D12_CPU_DESCRIPTOR_HANDLE GetCPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index) {
-	D3D12_CPU_DESCRIPTOR_HANDLE handleCPU = descriptorHeap->GetCPUDescriptorHandleForHeapStart();
-	handleCPU.ptr += (descriptorSize * index);
-	return handleCPU;
-}
-
-D3D12_GPU_DESCRIPTOR_HANDLE GetGPUDescriptorHandle(ID3D12DescriptorHeap* descriptorHeap, uint32_t descriptorSize, uint32_t index) {
-	D3D12_GPU_DESCRIPTOR_HANDLE handleGPU = descriptorHeap->GetGPUDescriptorHandleForHeapStart();
-	handleGPU.ptr += (descriptorSize * index);
-	return handleGPU;
-}
-
 
